@@ -443,23 +443,83 @@ def get_cursos_parceiro(parceiro_nome: str) -> Optional[Dict[str, int]]:
 
 def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
     """
-    Processa dados públicos para gráficos
+    Processa dados públicos para gráficos com filtros para dados vazios
     """
     try:
         df_vendas = fetch_vendas_publicas()
 
         if df_vendas is not None and not df_vendas.empty:
-            # Processar modalidades (Nível)
-            modalidades = df_vendas['Nível'].value_counts()
+            # Filtrar dados vazios e inválidos
+            # Remove linhas onde Nível ou Curso estão vazios/nulos
+            df_filtrado = df_vendas.dropna(subset=['Nível', 'Curso'])
 
-            # Processar cursos
-            cursos = df_vendas['Curso'].value_counts().head(
-                10)  # Top 10 cursos
+            # Remove linhas onde Nível ou Curso são strings vazias ou apenas espaços
+            df_filtrado = df_filtrado[
+                (df_filtrado['Nível'].str.strip() != '') &
+                (df_filtrado['Curso'].str.strip() != '')
+            ]
+
+            # Remove valores que são apenas "-", "N/A", "null", etc.
+            valores_invalidos = ['-', 'n/a', 'null', 'none', '']
+            df_filtrado = df_filtrado[
+                ~df_filtrado['Nível'].str.lower().str.strip().isin(valores_invalidos) &
+                ~df_filtrado['Curso'].str.lower(
+                ).str.strip().isin(valores_invalidos)
+            ]
+
+            if df_filtrado.empty:
+                return None
+
+            # Processar quantidade de matrículas para cálculo correto
+            if 'Qtd. Matrículas' in df_filtrado.columns:
+                df_filtrado['Qtd. Matrículas'] = pd.to_numeric(
+                    df_filtrado['Qtd. Matrículas'],
+                    errors='coerce'
+                ).fillna(1)
+            else:
+                df_filtrado['Qtd. Matrículas'] = 1
+
+            # Processar modalidades considerando quantidade de matrículas
+            modalidades_count = {}
+            for _, row in df_filtrado.iterrows():
+                nivel = row['Nível'].strip()
+                qtd = row['Qtd. Matrículas']
+                modalidades_count[nivel] = modalidades_count.get(
+                    nivel, 0) + qtd
+
+            # Processar cursos considerando quantidade de matrículas e combos
+            cursos_count = {}
+            for _, row in df_filtrado.iterrows():
+                curso = row['Curso'].strip()
+                qtd = row['Qtd. Matrículas']
+
+                # Se for combo, contar cada curso separadamente
+                if 'combo' in curso.lower() and ',' in curso:
+                    cursos_combo = [c.strip() for c in curso.split(',')]
+                    for curso_individual in cursos_combo:
+                        if ':' in curso_individual:
+                            curso_individual = curso_individual.split(':')[
+                                1].strip()
+                        if curso_individual:  # Verificar se não está vazio
+                            cursos_count[curso_individual] = cursos_count.get(
+                                curso_individual, 0) + qtd
+                else:
+                    cursos_count[curso] = cursos_count.get(curso, 0) + qtd
+
+            # Ordenar e pegar top 10
+            modalidades_ordenadas = dict(
+                sorted(modalidades_count.items(), key=lambda x: x[1], reverse=True))
+            cursos_ordenados = dict(
+                sorted(cursos_count.items(), key=lambda x: x[1], reverse=True)[:10])
+
+            # Calcular total de matrículas (não número de linhas)
+            total_matriculas = df_filtrado['Qtd. Matrículas'].sum()
 
             return {
-                'modalidades': modalidades.to_dict(),
-                'cursos': cursos.to_dict(),
-                'total_vendas': len(df_vendas)
+                'modalidades': modalidades_ordenadas,
+                'cursos': cursos_ordenados,
+                'total_matriculas': int(total_matriculas),
+                'total_registros': len(df_filtrado)
             }
 
         return None
