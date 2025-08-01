@@ -250,7 +250,7 @@ def render_dashboard_individual(parceiro_nome: str):
                             st.info(
                                 f"**🛒 Total de Vendas:** {stats_data['total_vendas']}")
 
-                        with col_resumo3:
+                        with col_resumo2:
                             st.info(
                                 f"**📖 Cursos Diferentes:** {stats_data['variedade_cursos']}")
 

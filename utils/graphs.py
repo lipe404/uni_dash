@@ -497,7 +497,7 @@ def create_kpi_analise_cards(stats_data: Dict[str, Any], periodo_texto: str):
     """
     Cria cards de KPIs para análise de modalidades e cursos
     """
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric(
@@ -508,19 +508,12 @@ def create_kpi_analise_cards(stats_data: Dict[str, Any], periodo_texto: str):
 
     with col2:
         st.metric(
-            label="🛒 Total de Vendas",
-            value=stats_data.get('total_vendas', 0),
-            help=f"Número de transações no período: {periodo_texto}"
-        )
-
-    with col3:
-        st.metric(
             label="🎯 Variedade de Modalidades",
             value=stats_data.get('variedade_modalidades', 0),
             help=f"Diferentes modalidades vendidas no período: {periodo_texto}"
         )
 
-    with col4:
+    with col3:
         st.metric(
             label="📖 Variedade de Cursos",
             value=stats_data.get('variedade_cursos', 0),
