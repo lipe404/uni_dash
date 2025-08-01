@@ -58,12 +58,14 @@ def render_dashboard_individual(parceiro_nome: str):
         col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
 
         with col_filtro1:
+            # Adicione 2024 como opção se necessário, ou ajuste para anos dinâmicos
             anos_disponiveis = [2024, 2025]
             ano_selecionado = st.selectbox(
                 "📅 Selecione o Ano:",
                 options=[None] + anos_disponiveis,
                 format_func=lambda x: "Todos os anos" if x is None else str(x),
-                index=2  # Default para 2025
+                # Default para 2025 (ou 1 para 2024 se for a primeira opção)
+                index=2
             )
 
         with col_filtro2:
@@ -72,36 +74,57 @@ def render_dashboard_individual(parceiro_nome: str):
                 5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
                 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
             }
+
+            # Obter o mês atual
+            mes_atual = datetime.now().month
+
+            # Criar lista de meses (apenas números, sem None)
+            meses_opcoes = list(meses.keys())
+
+            # Encontrar o índice do mês atual na lista
+            try:
+                indice_mes_atual = meses_opcoes.index(mes_atual)
+            except ValueError:
+                # Se por algum motivo não encontrar, usa Janeiro como padrão
+                indice_mes_atual = 0
+
             mes_selecionado = st.selectbox(
                 "📅 Selecione o Mês:",
-                options=[None] + list(meses.keys()),
-                format_func=lambda x: "Todos os meses" if x is None else meses[x],
-                index=0
+                options=meses_opcoes,  # Apenas os números dos meses, sem None
+                format_func=lambda x: meses[x],  # Mostra o nome do mês
+                index=indice_mes_atual  # Seleciona o mês atual automaticamente
             )
 
         with col_filtro3:
             if st.button("🔄 Atualizar Dados"):
                 st.cache_data.clear()
+                st.rerun()  # Para forçar a recarga após limpar o cache
 
         # Buscar dados de evolução de matrículas
         with st.spinner("Carregando evolução de matrículas..."):
-            evolucao_data = get_evolucao_matriculas_parceiro(
+            evolucao_result = get_evolucao_matriculas_parceiro(  # Captura o dicionário completo
                 parceiro_nome,
                 ano_selecionado,
-                mes_selecionado
+                mes_selecionado  # Agora sempre será um número de 1-12
             )
 
-        if evolucao_data:
+        # Verifica se há dados na chave 'evolucao_data'
+        if evolucao_result and evolucao_result['evolucao_data']:
             # Gráfico de evolução de matrículas
             fig_evolucao = create_evolucao_matriculas_chart(
-                evolucao_data['evolucao_mensal'])
+                # Passa a lista de dicionários para o gráfico
+                evolucao_result['evolucao_data'])
             st.plotly_chart(fig_evolucao, use_container_width=True)
 
             # KPI de matrículas
             st.metric(
                 label="📚 Total de Matrículas no Período",
-                value=int(evolucao_data['total_matriculas'])
+                value=int(evolucao_result['total_matriculas'])
             )
+        else:
+            # Mensagem para quando não há dados
+            st.info(
+                f"Nenhuma matrícula encontrada para {meses[mes_selecionado]} de {ano_selecionado if ano_selecionado else 'todos os anos'}.")
 
         st.markdown("---")
 
