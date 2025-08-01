@@ -9,7 +9,7 @@ def render_dashboard_publico():
     """
     st.title("🌍 Dashboard Público - Dados Gerais")
     st.markdown(
-        "*Visualização geral de vendas por modalidades e cursos*")
+        "*Visualização geral de vendas por modalidades e cursos (apenas porcentagens)*")
 
     # Buscar dados públicos
     with st.spinner("Carregando dados públicos..."):
@@ -18,25 +18,6 @@ def render_dashboard_publico():
     if dados_publicos:
         # KPI geral (removido total de vendas)
         st.markdown("### 📊 Indicadores Gerais")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.metric(
-                label="🎯 Modalidades Diferentes",
-                value=len(dados_publicos['modalidades']),
-                delta=None,
-                help="Número de modalidades diferentes oferecidas"
-            )
-
-        with col2:
-            st.metric(
-                label="📚 Cursos Diferentes",
-                value=len(dados_publicos['cursos']),
-                delta=None,
-                help="Número de cursos diferentes oferecidos"
-            )
-
-        st.markdown("---")
 
         # Gráficos com porcentagens
         col1, col2 = st.columns(2)

@@ -275,7 +275,7 @@ def create_cursos_parceiro_chart(cursos_data: Dict[str, int]) -> go.Figure:
 
 def create_modalidades_chart(modalidades_data: Dict[str, int]) -> go.Figure:
     """
-    Cria gráfico de modalidades mais vendidas
+    Cria gráfico de modalidades mais vendidas (dashboard público - versão antiga)
     """
     modalidades = list(modalidades_data.keys())
     valores = list(modalidades_data.values())
@@ -301,7 +301,7 @@ def create_modalidades_chart(modalidades_data: Dict[str, int]) -> go.Figure:
 
 def create_cursos_chart(cursos_data: Dict[str, int]) -> go.Figure:
     """
-    Cria gráfico de cursos mais vendidos
+    Cria gráfico de cursos mais vendidos (dashboard público - versão antiga)
     """
     cursos = list(cursos_data.keys())[:10]  # Top 10
     valores = list(cursos_data.values())[:10]
@@ -320,6 +320,103 @@ def create_cursos_chart(cursos_data: Dict[str, int]) -> go.Figure:
     fig.update_layout(
         title='🏆 Top 10 Cursos Mais Vendidos',
         xaxis_title='Número de Vendas',
+        yaxis_title='Cursos',
+        template='plotly_white',
+        height=600,
+        showlegend=False
+    )
+
+    return fig
+
+
+def create_modalidades_chart_percentual(modalidades_data: Dict[str, int]) -> go.Figure:
+    """
+    Cria gráfico de modalidades mais vendidas mostrando apenas porcentagens
+    """
+    if not modalidades_data:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Nenhum dado disponível",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        fig.update_layout(
+            title='🎯 Modalidades Mais Vendidas',
+            template='plotly_white',
+            height=500
+        )
+        return fig
+
+    modalidades = list(modalidades_data.keys())
+    valores = list(modalidades_data.values())
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Pie(
+        labels=modalidades,
+        values=valores,
+        hole=0.4,
+        textinfo='label+percent',
+        textposition='outside',
+        hovertemplate='<b>%{label}</b><br>Porcentagem: %{percent}<br><extra></extra>'
+    ))
+
+    fig.update_layout(
+        title='🎯 Modalidades Mais Vendidas (%)',
+        template='plotly_white',
+        height=500,
+        showlegend=True
+    )
+
+    return fig
+
+
+def create_cursos_chart_percentual(cursos_data: Dict[str, int]) -> go.Figure:
+    """
+    Cria gráfico de cursos mais vendidos mostrando apenas porcentagens
+    """
+    if not cursos_data:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Nenhum dado disponível",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        fig.update_layout(
+            title='🏆 Top 10 Cursos Mais Vendidos',
+            template='plotly_white',
+            height=600
+        )
+        return fig
+
+    cursos = list(cursos_data.keys())[:10]
+    valores = list(cursos_data.values())[:10]
+
+    # Calcular porcentagens
+    total = sum(cursos_data.values())  # Total de todos os cursos
+    porcentagens = [(v/total)*100 for v in valores]
+
+    # Criar labels com porcentagens
+    labels_com_percentual = [
+        f"{porcentagens[i]:.1f}%" for i in range(len(porcentagens))]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=porcentagens,
+        y=cursos,
+        orientation='h',
+        marker_color='#ff7f0e',
+        text=labels_com_percentual,
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br>Porcentagem: %{x:.1f}%<br><extra></extra>'
+    ))
+
+    fig.update_layout(
+        title='🏆 Top 10 Cursos Mais Vendidos (%)',
+        xaxis_title='Porcentagem (%)',
         yaxis_title='Cursos',
         template='plotly_white',
         height=600,
@@ -532,110 +629,6 @@ def create_cursos_modalidade_chart(cursos_data: Dict[str, int], modalidade: str)
         yaxis_title='Cursos',
         template='plotly_white',
         height=500,
-        showlegend=False
-    )
-
-    return fig
-
-# Adicione estas novas funções ao final do arquivo graphs.py
-
-
-def create_modalidades_chart_percentual(modalidades_data: Dict[str, int]) -> go.Figure:
-    """
-    Cria gráfico de modalidades mais vendidas mostrando apenas porcentagens
-    """
-    if not modalidades_data:
-        fig = go.Figure()
-        fig.add_annotation(
-            text="Nenhum dado disponível",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5, xanchor='center', yanchor='middle',
-            showarrow=False, font=dict(size=16)
-        )
-        fig.update_layout(
-            title='🎯 Modalidades Mais Vendidas',
-            template='plotly_white',
-            height=500
-        )
-        return fig
-
-    modalidades = list(modalidades_data.keys())
-    valores = list(modalidades_data.values())
-
-    # Calcular porcentagens
-    total = sum(valores)
-    porcentagens = [(v/total)*100 for v in valores]
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Pie(
-        labels=modalidades,
-        values=valores,  # Plotly usa valores para calcular porcentagens automaticamente
-        hole=0.4,
-        textinfo='label+percent',
-        textposition='outside',
-        hovertemplate='<b>%{label}</b><br>Porcentagem: %{percent}<br><extra></extra>'
-    ))
-
-    fig.update_layout(
-        title='🎯 Modalidades Mais Vendidas (%)',
-        template='plotly_white',
-        height=500,
-        showlegend=True
-    )
-
-    return fig
-
-
-def create_cursos_chart_percentual(cursos_data: Dict[str, int]) -> go.Figure:
-    """
-    Cria gráfico de cursos mais vendidos mostrando apenas porcentagens
-    """
-    if not cursos_data:
-        fig = go.Figure()
-        fig.add_annotation(
-            text="Nenhum dado disponível",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5, xanchor='center', yanchor='middle',
-            showarrow=False, font=dict(size=16)
-        )
-        fig.update_layout(
-            title='🏆 Top 10 Cursos Mais Vendidos',
-            template='plotly_white',
-            height=600
-        )
-        return fig
-
-    cursos = list(cursos_data.keys())[:10]
-    valores = list(cursos_data.values())[:10]
-
-    # Calcular porcentagens
-    # Total de todos os cursos, não apenas top 10
-    total = sum(cursos_data.values())
-    porcentagens = [(v/total)*100 for v in valores]
-
-    # Criar labels com porcentagens
-    labels_com_percentual = [
-        f"{porcentagens[i]:.1f}%" for i in range(len(porcentagens))]
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Bar(
-        x=porcentagens,
-        y=cursos,
-        orientation='h',
-        marker_color='#ff7f0e',
-        text=labels_com_percentual,
-        textposition='outside',
-        hovertemplate='<b>%{y}</b><br>Porcentagem: %{x:.1f}%<br><extra></extra>'
-    ))
-
-    fig.update_layout(
-        title='🏆 Top 10 Cursos Mais Vendidos (%)',
-        xaxis_title='Porcentagem (%)',
-        yaxis_title='Cursos',
-        template='plotly_white',
-        height=600,
         showlegend=False
     )
 
