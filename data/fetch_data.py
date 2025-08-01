@@ -2,7 +2,7 @@ import pandas as pd
 import requests
 import streamlit as st
 from config import GOOGLE_SHEETS_CONFIG
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import io
 from datetime import datetime, timedelta
 
@@ -194,6 +194,182 @@ def get_evolucao_matriculas_parceiro(parceiro_nome: str, ano: int = None, mes: i
 
     except Exception as e:
         st.error(f"Erro ao calcular evolução de matrículas: {str(e)}")
+        return None
+
+
+def get_modalidades_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, int]]:
+    """
+    Retorna modalidades mais vendidas do parceiro com filtros de data
+    """
+    try:
+        df_vendas = get_parceiro_vendas_detalhadas(parceiro_nome)
+
+        if df_vendas is not None and not df_vendas.empty:
+            # Aplicar filtros de data
+            df_filtrado = df_vendas.copy()
+
+            if ano:
+                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+
+            if mes:
+                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+
+            if df_filtrado.empty:
+                return None
+
+            # Contar modalidades considerando quantidade de matrículas
+            modalidades = {}
+            for _, row in df_filtrado.iterrows():
+                nivel = row.get('Nível', 'Não informado')
+                qtd = row.get('Qtd. Matrículas', 1)
+                modalidades[nivel] = modalidades.get(nivel, 0) + qtd
+
+            # Ordenar por quantidade e pegar top 10
+            modalidades_ordenadas = dict(
+                sorted(modalidades.items(), key=lambda x: x[1], reverse=True)[:10])
+
+            return modalidades_ordenadas
+
+        return None
+
+    except Exception as e:
+        st.error(f"Erro ao buscar modalidades filtradas do parceiro: {str(e)}")
+        return None
+
+
+def get_cursos_parceiro_filtrados(parceiro_nome: str, ano: int = None, mes: int = None, modalidade: str = None) -> Optional[Dict[str, int]]:
+    """
+    Retorna cursos mais vendidos do parceiro com filtros de data e modalidade
+    """
+    try:
+        df_vendas = get_parceiro_vendas_detalhadas(parceiro_nome)
+
+        if df_vendas is not None and not df_vendas.empty:
+            # Aplicar filtros
+            df_filtrado = df_vendas.copy()
+
+            if ano:
+                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+
+            if mes:
+                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+
+            if modalidade and modalidade != "Todas":
+                df_filtrado = df_filtrado[df_filtrado['Nível'] == modalidade]
+
+            if df_filtrado.empty:
+                return None
+
+            # Contar cursos considerando quantidade de matrículas
+            cursos = {}
+            for _, row in df_filtrado.iterrows():
+                curso = row.get('Curso', 'Não informado')
+                qtd = row.get('Qtd. Matrículas', 1)
+
+                # Se for combo, contar cada curso separadamente
+                if 'combo' in curso.lower() and ',' in curso:
+                    # Separar cursos do combo
+                    cursos_combo = [c.strip() for c in curso.split(',')]
+                    for curso_individual in cursos_combo:
+                        if ':' in curso_individual:
+                            curso_individual = curso_individual.split(':')[
+                                1].strip()
+                        cursos[curso_individual] = cursos.get(
+                            curso_individual, 0) + qtd
+                else:
+                    cursos[curso] = cursos.get(curso, 0) + qtd
+
+            # Ordenar por quantidade e pegar top 10
+            cursos_ordenados = dict(
+                sorted(cursos.items(), key=lambda x: x[1], reverse=True)[:10])
+
+            return cursos_ordenados
+
+        return None
+
+    except Exception as e:
+        st.error(f"Erro ao buscar cursos filtrados do parceiro: {str(e)}")
+        return None
+
+
+def get_lista_modalidades_parceiro(parceiro_nome: str) -> List[str]:
+    """
+    Retorna lista de modalidades disponíveis para o parceiro
+    """
+    try:
+        df_vendas = get_parceiro_vendas_detalhadas(parceiro_nome)
+
+        if df_vendas is not None and not df_vendas.empty:
+            modalidades = df_vendas['Nível'].dropna().unique().tolist()
+            return sorted(modalidades)
+
+        return []
+
+    except Exception as e:
+        st.error(f"Erro ao buscar lista de modalidades: {str(e)}")
+        return []
+
+
+def get_estatisticas_parceiro(parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+    """
+    Retorna estatísticas gerais do parceiro
+    """
+    try:
+        df_vendas = get_parceiro_vendas_detalhadas(parceiro_nome)
+
+        if df_vendas is not None and not df_vendas.empty:
+            # Aplicar filtros de data
+            df_filtrado = df_vendas.copy()
+
+            if ano:
+                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+
+            if mes:
+                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+
+            if df_filtrado.empty:
+                return None
+
+            # Calcular estatísticas
+            total_matriculas = df_filtrado['Qtd. Matrículas'].sum()
+            total_vendas = len(df_filtrado)
+            variedade_cursos = df_filtrado['Curso'].nunique()
+            variedade_modalidades = df_filtrado['Nível'].nunique()
+
+            # Modalidade mais vendida
+            modalidades_count = {}
+            for _, row in df_filtrado.iterrows():
+                nivel = row.get('Nível', 'Não informado')
+                qtd = row.get('Qtd. Matrículas', 1)
+                modalidades_count[nivel] = modalidades_count.get(
+                    nivel, 0) + qtd
+
+            modalidade_top = max(modalidades_count.items(
+            ), key=lambda x: x[1]) if modalidades_count else ("Nenhuma", 0)
+
+            # Curso mais vendido
+            cursos_count = {}
+            for _, row in df_filtrado.iterrows():
+                curso = row.get('Curso', 'Não informado')
+                qtd = row.get('Qtd. Matrículas', 1)
+                cursos_count[curso] = cursos_count.get(curso, 0) + qtd
+
+            curso_top = max(cursos_count.items(
+            ), key=lambda x: x[1]) if cursos_count else ("Nenhum", 0)
+
+            return {
+                'total_matriculas': int(total_matriculas),
+                'total_vendas': total_vendas,
+                'variedade_cursos': variedade_cursos,
+                'variedade_modalidades': variedade_modalidades,
+                'modalidade_top': modalidade_top,
+                'curso_top': curso_top
+            }
+
+        return None
+
+    except Exception as e:
+        st.error(f"Erro ao calcular estatísticas do parceiro: {str(e)}")
         return None
 
 

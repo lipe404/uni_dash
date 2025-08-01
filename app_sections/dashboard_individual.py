@@ -3,8 +3,10 @@ import plotly.express as px
 from data.fetch_data import (
     get_parceiro_vendas_data,
     get_evolucao_matriculas_parceiro,
-    get_modalidades_parceiro,
-    get_cursos_parceiro
+    get_modalidades_parceiro_filtradas,
+    get_cursos_parceiro_filtrados,
+    get_lista_modalidades_parceiro,
+    get_estatisticas_parceiro
 )
 from utils.graphs import (
     create_vendas_mensais_chart,
@@ -13,7 +15,10 @@ from utils.graphs import (
     create_evolucao_matriculas_chart,
     create_modalidades_parceiro_bar_chart,
     create_modalidades_parceiro_pie_chart,
-    create_cursos_parceiro_chart
+    create_cursos_parceiro_chart,
+    create_kpi_analise_cards,
+    create_modalidades_evolucao_chart,
+    create_cursos_modalidade_chart
 )
 from datetime import datetime
 
@@ -58,13 +63,11 @@ def render_dashboard_individual(parceiro_nome: str):
         col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
 
         with col_filtro1:
-            # Adicione 2024 como opção se necessário, ou ajuste para anos dinâmicos
             anos_disponiveis = [2024, 2025]
             ano_selecionado = st.selectbox(
                 "📅 Selecione o Ano:",
                 options=[None] + anos_disponiveis,
                 format_func=lambda x: "Todos os anos" if x is None else str(x),
-                # Default para 2025 (ou 1 para 2024 se for a primeira opção)
                 index=2
             )
 
@@ -75,90 +78,211 @@ def render_dashboard_individual(parceiro_nome: str):
                 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
             }
 
-            # Obter o mês atual
             mes_atual = datetime.now().month
-
-            # Criar lista de meses (apenas números, sem None)
             meses_opcoes = list(meses.keys())
 
-            # Encontrar o índice do mês atual na lista
             try:
                 indice_mes_atual = meses_opcoes.index(mes_atual)
             except ValueError:
-                # Se por algum motivo não encontrar, usa Janeiro como padrão
                 indice_mes_atual = 0
 
             mes_selecionado = st.selectbox(
                 "📅 Selecione o Mês:",
-                options=meses_opcoes,  # Apenas os números dos meses, sem None
-                format_func=lambda x: meses[x],  # Mostra o nome do mês
-                index=indice_mes_atual  # Seleciona o mês atual automaticamente
+                options=meses_opcoes,
+                format_func=lambda x: meses[x],
+                index=indice_mes_atual
             )
 
         with col_filtro3:
             if st.button("🔄 Atualizar Dados"):
                 st.cache_data.clear()
-                st.rerun()  # Para forçar a recarga após limpar o cache
+                st.rerun()
 
         # Buscar dados de evolução de matrículas
         with st.spinner("Carregando evolução de matrículas..."):
-            evolucao_result = get_evolucao_matriculas_parceiro(  # Captura o dicionário completo
+            evolucao_result = get_evolucao_matriculas_parceiro(
                 parceiro_nome,
                 ano_selecionado,
-                mes_selecionado  # Agora sempre será um número de 1-12
+                mes_selecionado
             )
 
-        # Verifica se há dados na chave 'evolucao_data'
         if evolucao_result and evolucao_result['evolucao_data']:
-            # Gráfico de evolução de matrículas
             fig_evolucao = create_evolucao_matriculas_chart(
-                # Passa a lista de dicionários para o gráfico
                 evolucao_result['evolucao_data'])
             st.plotly_chart(fig_evolucao, use_container_width=True)
 
-            # KPI de matrículas
             st.metric(
                 label="📚 Total de Matrículas no Período",
                 value=int(evolucao_result['total_matriculas'])
             )
         else:
-            # Mensagem para quando não há dados
             st.info(
                 f"Nenhuma matrícula encontrada para {meses[mes_selecionado]} de {ano_selecionado if ano_selecionado else 'todos os anos'}.")
 
         st.markdown("---")
 
-        # Segunda linha de gráficos - Modalidades e Cursos
-        st.markdown("### 🎯 Análise de Modalidades e Cursos")
+        # NOVA SEÇÃO: Análise Avançada de Modalidades e Cursos
+        st.markdown("### 🎯 Análise Avançada de Modalidades e Cursos")
 
-        # Buscar dados de modalidades e cursos
-        with st.spinner("Carregando dados de modalidades e cursos..."):
-            modalidades_data = get_modalidades_parceiro(parceiro_nome)
-            cursos_data = get_cursos_parceiro(parceiro_nome)
+        # Filtros para análise
+        col_filtro_analise1, col_filtro_analise2, col_filtro_analise3, col_filtro_analise4 = st.columns(
+            4)
 
-        # Gráficos de modalidades
-        col1, col2 = st.columns(2)
+        with col_filtro_analise1:
+            ano_analise = st.selectbox(
+                "📅 Ano para Análise:",
+                options=[2025, 2024, None],
+                format_func=lambda x: "Todos os anos" if x is None else str(x),
+                index=0,
+                key="ano_analise"
+            )
 
-        with col1:
-            if modalidades_data:
-                fig_modalidades_bar = create_modalidades_parceiro_bar_chart(
-                    modalidades_data)
-                st.plotly_chart(fig_modalidades_bar, use_container_width=True)
+        with col_filtro_analise2:
+            mes_analise = st.selectbox(
+                "📅 Mês para Análise:",
+                options=[None] + list(meses.keys()),
+                format_func=lambda x: "Todos os meses" if x is None else meses[x],
+                index=0,
+                key="mes_analise"
+            )
 
-        with col2:
-            if modalidades_data:
-                fig_modalidades_pie = create_modalidades_parceiro_pie_chart(
-                    modalidades_data)
-                st.plotly_chart(fig_modalidades_pie, use_container_width=True)
+        with col_filtro_analise3:
+            # Buscar modalidades disponíveis
+            modalidades_disponiveis = get_lista_modalidades_parceiro(
+                parceiro_nome)
+            modalidade_selecionada = st.selectbox(
+                "🎯 Modalidade:",
+                options=["Todas"] + modalidades_disponiveis,
+                index=0,
+                key="modalidade_analise"
+            )
 
-        # Gráfico de cursos
-        if cursos_data:
-            fig_cursos = create_cursos_parceiro_chart(cursos_data)
-            st.plotly_chart(fig_cursos, use_container_width=True)
+        with col_filtro_analise4:
+            tipo_analise = st.selectbox(
+                "📊 Tipo de Análise:",
+                options=["Visão Geral", "Comparativo 2025 vs Mês",
+                         "Cursos por Modalidade"],
+                index=0,
+                key="tipo_analise"
+            )
+
+        # Definir período para exibição
+        if ano_analise and mes_analise:
+            periodo_texto = f"{meses[mes_analise]} de {ano_analise}"
+        elif ano_analise:
+            periodo_texto = f"Ano {ano_analise}"
+        elif mes_analise:
+            periodo_texto = f"{meses[mes_analise]} (todos os anos)"
+        else:
+            periodo_texto = "Todo o período"
+
+        # Buscar dados baseados nos filtros
+        with st.spinner("Carregando análise avançada..."):
+            # Estatísticas gerais
+            stats_data = get_estatisticas_parceiro(
+                parceiro_nome, ano_analise, mes_analise)
+
+            if stats_data:
+                # KPIs da análise
+                st.markdown("#### 📊 Indicadores do Período")
+                create_kpi_analise_cards(stats_data, periodo_texto)
+
+                st.markdown("---")
+
+                # Análise baseada no tipo selecionado
+                if tipo_analise == "Visão Geral":
+                    # Modalidades e cursos do período
+                    modalidades_periodo = get_modalidades_parceiro_filtradas(
+                        parceiro_nome, ano_analise, mes_analise)
+                    cursos_periodo = get_cursos_parceiro_filtrados(
+                        parceiro_nome, ano_analise, mes_analise)
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        if modalidades_periodo:
+                            fig_modalidades = create_modalidades_parceiro_bar_chart(
+                                modalidades_periodo)
+                            fig_modalidades.update_layout(
+                                title=f'🎯 Modalidades - {periodo_texto}')
+                            st.plotly_chart(fig_modalidades,
+                                            use_container_width=True)
+
+                    with col2:
+                        if modalidades_periodo:
+                            fig_modalidades_pie = create_modalidades_parceiro_pie_chart(
+                                modalidades_periodo)
+                            fig_modalidades_pie.update_layout(
+                                title=f'🥧 Distribuição - {periodo_texto}')
+                            st.plotly_chart(fig_modalidades_pie,
+                                            use_container_width=True)
+
+                    if cursos_periodo:
+                        fig_cursos = create_cursos_parceiro_chart(
+                            cursos_periodo)
+                        fig_cursos.update_layout(
+                            title=f'🏆 Cursos - {periodo_texto}')
+                        st.plotly_chart(fig_cursos, use_container_width=True)
+
+                elif tipo_analise == "Comparativo 2025 vs Mês" and mes_analise:
+                    # Comparar total 2025 vs mês específico
+                    modalidades_2025 = get_modalidades_parceiro_filtradas(
+                        parceiro_nome, 2025, None)
+                    modalidades_mes = get_modalidades_parceiro_filtradas(
+                        parceiro_nome, 2025, mes_analise)
+
+                    fig_comparativo = create_modalidades_evolucao_chart(
+                        modalidades_2025,
+                        modalidades_mes,
+                        meses[mes_analise]
+                    )
+                    st.plotly_chart(fig_comparativo, use_container_width=True)
+
+                elif tipo_analise == "Cursos por Modalidade" and modalidade_selecionada != "Todas":
+                    # Cursos da modalidade específica
+                    cursos_modalidade = get_cursos_parceiro_filtrados(
+                        parceiro_nome,
+                        ano_analise,
+                        mes_analise,
+                        modalidade_selecionada
+                    )
+
+                    if cursos_modalidade:
+                        fig_cursos_modalidade = create_cursos_modalidade_chart(
+                            cursos_modalidade,
+                            modalidade_selecionada
+                        )
+                        st.plotly_chart(fig_cursos_modalidade,
+                                        use_container_width=True)
+                    else:
+                        st.info(
+                            f"Nenhum curso encontrado para a modalidade '{modalidade_selecionada}' no período selecionado.")
+
+                # Informações adicionais
+                st.markdown("#### 🏆 Destaques do Período")
+                col_destaque1, col_destaque2 = st.columns(2)
+
+                with col_destaque1:
+                    modalidade_top = stats_data.get(
+                        'modalidade_top', ('Nenhuma', 0))
+                    st.success(
+                        f"**🎯 Modalidade Mais Vendida:** {modalidade_top[0]} ({modalidade_top[1]} vendas)")
+
+                with col_destaque2:
+                    curso_top = stats_data.get('curso_top', ('Nenhum', 0))
+                    # Limitar o nome do curso se for muito longo
+                    curso_nome = curso_top[0][:50] + \
+                        "..." if len(curso_top[0]) > 50 else curso_top[0]
+                    st.success(
+                        f"**📚 Curso Mais Vendido:** {curso_nome} ({curso_top[1]} vendas)")
+
+            else:
+                st.info(
+                    f"Nenhum dado encontrado para o período: {periodo_texto}")
 
         st.markdown("---")
 
-        # Detalhes mensais
+        # Detalhes mensais (seção original)
         st.markdown("### 📅 Detalhamento Mensal")
 
         vendas_mensais = vendas_data['vendas_mensais']
