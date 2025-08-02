@@ -626,3 +626,163 @@ def create_cursos_modalidade_chart(cursos_data: Dict[str, int], modalidade: str)
     )
 
     return fig
+
+
+def create_evolucao_modalidades_linha_chart(evolucao_data: Dict[str, Any]) -> go.Figure:
+    """
+    Cria gráfico de linha da evolução das modalidades mês a mês
+    """
+    if not evolucao_data:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Nenhum dado disponível",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        fig.update_layout(
+            title='📈 Evolução das Modalidades por Mês',
+            template='plotly_white',
+            height=500
+        )
+        return fig
+
+    # Extrair todas as modalidades únicas
+    todas_modalidades = set()
+    for mes_data in evolucao_data.values():
+        if mes_data['modalidades']:
+            todas_modalidades.update(mes_data['modalidades'].keys())
+
+    # Preparar dados para o gráfico
+    meses = list(evolucao_data.keys())
+
+    fig = go.Figure()
+
+    # Cores para as modalidades
+    cores = px.colors.qualitative.Set3
+
+    for i, modalidade in enumerate(sorted(todas_modalidades)):
+        valores = []
+        for mes in meses:
+            mes_data = evolucao_data[mes]
+            if mes_data['modalidades'] and modalidade in mes_data['modalidades']:
+                valores.append(mes_data['modalidades'][modalidade])
+            else:
+                valores.append(0)
+
+        fig.add_trace(go.Scatter(
+            x=meses,
+            y=valores,
+            mode='lines+markers',
+            name=modalidade,
+            line=dict(width=3, color=cores[i % len(cores)]),
+            marker=dict(size=8),
+            hovertemplate=f'<b>{modalidade}</b><br>Mês: %{{x}}<br>Percentual: %{{y:.1f}}%<extra></extra>'
+        ))
+
+    fig.update_layout(
+        title='📈 Evolução das Modalidades por Mês (%)',
+        xaxis_title='Mês',
+        yaxis_title='Percentual (%)',
+        template='plotly_white',
+        height=500,
+        hovermode='x unified',
+        xaxis=dict(tickangle=45),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+
+    return fig
+
+
+def create_modalidades_comparativo_chart(dados_2024: Dict[str, int], dados_2025: Dict[str, int], dados_geral: Dict[str, int]) -> go.Figure:
+    """
+    Cria gráfico comparativo de modalidades entre diferentes períodos
+    """
+    # Combinar todas as modalidades
+    todas_modalidades = set()
+    if dados_2024:
+        todas_modalidades.update(dados_2024.keys())
+    if dados_2025:
+        todas_modalidades.update(dados_2025.keys())
+    if dados_geral:
+        todas_modalidades.update(dados_geral.keys())
+
+    if not todas_modalidades:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Nenhum dado disponível",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        fig.update_layout(
+            title='📊 Comparativo de Modalidades',
+            template='plotly_white',
+            height=500
+        )
+        return fig
+
+    modalidades_list = sorted(list(todas_modalidades))
+
+    # Calcular totais para porcentagens
+    total_2024 = sum(dados_2024.values()) if dados_2024 else 0
+    total_2025 = sum(dados_2025.values()) if dados_2025 else 0
+    total_geral = sum(dados_geral.values()) if dados_geral else 0
+
+    # Calcular porcentagens
+    valores_2024 = [(dados_2024.get(mod, 0) / total_2024 * 100)
+                    if total_2024 > 0 else 0 for mod in modalidades_list]
+    valores_2025 = [(dados_2025.get(mod, 0) / total_2025 * 100)
+                    if total_2025 > 0 else 0 for mod in modalidades_list]
+    valores_geral = [(dados_geral.get(mod, 0) / total_geral * 100)
+                     if total_geral > 0 else 0 for mod in modalidades_list]
+
+    fig = go.Figure()
+
+    if dados_geral:
+        fig.add_trace(go.Bar(
+            name='Geral',
+            x=modalidades_list,
+            y=valores_geral,
+            marker_color='#95a5a6',
+            text=[f"{v:.1f}%" for v in valores_geral],
+            textposition='outside'
+        ))
+
+    if dados_2024:
+        fig.add_trace(go.Bar(
+            name='2024',
+            x=modalidades_list,
+            y=valores_2024,
+            marker_color='#3498db',
+            text=[f"{v:.1f}%" for v in valores_2024],
+            textposition='outside'
+        ))
+
+    if dados_2025:
+        fig.add_trace(go.Bar(
+            name='2025',
+            x=modalidades_list,
+            y=valores_2025,
+            marker_color='#e74c3c',
+            text=[f"{v:.1f}%" for v in valores_2025],
+            textposition='outside'
+        ))
+
+    fig.update_layout(
+        title='📊 Comparativo de Modalidades por Período (%)',
+        xaxis_title='Modalidades',
+        yaxis_title='Percentual (%)',
+        template='plotly_white',
+        height=500,
+        barmode='group',
+        xaxis=dict(tickangle=45)
+    )
+
+    return fig
