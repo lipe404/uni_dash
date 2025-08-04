@@ -141,7 +141,8 @@ def create_evolucao_matriculas_chart(evolucao_data: List[Dict]) -> go.Figure:
     return fig
 
 
-def create_modalidades_parceiro_bar_chart(modalidades_data: Dict[str, int]) -> go.Figure:
+def create_modalidades_parceiro_bar_chart(
+        modalidades_data: Dict[str, int]) -> go.Figure:
     """
     Cria gráfico de barras das modalidades do parceiro
     """
@@ -186,7 +187,8 @@ def create_modalidades_parceiro_bar_chart(modalidades_data: Dict[str, int]) -> g
     return fig
 
 
-def create_modalidades_parceiro_pie_chart(modalidades_data: Dict[str, int]) -> go.Figure:
+def create_modalidades_parceiro_pie_chart(
+        modalidades_data: Dict[str, int]) -> go.Figure:
     """
     Cria gráfico de pizza das modalidades do parceiro
     """
@@ -275,7 +277,7 @@ def create_cursos_parceiro_chart(cursos_data: Dict[str, int]) -> go.Figure:
 
 def create_modalidades_chart(modalidades_data: Dict[str, int]) -> go.Figure:
     """
-    Cria gráfico de modalidades mais vendidas (dashboard público - versão antiga)
+    Cria gráfico de modalidades mais vendidas
     """
     modalidades = list(modalidades_data.keys())
     valores = list(modalidades_data.values())
@@ -329,7 +331,8 @@ def create_cursos_chart(cursos_data: Dict[str, int]) -> go.Figure:
     return fig
 
 
-def create_modalidades_chart_percentual(modalidades_data: Dict[str, int]) -> go.Figure:
+def create_modalidades_chart_percentual(
+        modalidades_data: Dict[str, int]) -> go.Figure:
     """
     Cria gráfico de modalidades mais vendidas mostrando apenas porcentagens
     """
@@ -465,7 +468,9 @@ def create_kpi_cards(vendas_data: Dict[str, Any]):
         if vendas_mensais:
             mes_atual_valor = max(vendas_mensais.values())
             mes_nome_raw = [
-                mes for mes, valor in vendas_mensais.items() if valor == mes_atual_valor][0]
+                mes for mes,
+                valor in vendas_mensais.items() if valor == mes_atual_valor
+                ][0]
             # Tenta extrair o número do mês
             import re
             match = re.search(r'(\d{1,2})', mes_nome_raw)
@@ -521,7 +526,9 @@ def create_kpi_analise_cards(stats_data: Dict[str, Any], periodo_texto: str):
         )
 
 
-def create_modalidades_evolucao_chart(modalidades_2025: Dict[str, int], modalidades_mensal: Dict[str, int], mes_nome: str) -> go.Figure:
+def create_modalidades_evolucao_chart(
+        modalidades_2025: Dict[str, int],
+        modalidades_mensal: Dict[str, int], mes_nome: str) -> go.Figure:
     """
     Cria gráfico comparativo de modalidades (2025 vs mês específico)
     """
@@ -541,7 +548,8 @@ def create_modalidades_evolucao_chart(modalidades_2025: Dict[str, int], modalida
         return fig
 
     # Combinar todas as modalidades
-    todas_modalidades = set(modalidades_2025.keys() if modalidades_2025 else []) | set(
+    todas_modalidades = set(
+        modalidades_2025.keys() if modalidades_2025 else []) | set(
         modalidades_mensal.keys() if modalidades_mensal else [])
 
     modalidades_list = list(todas_modalidades)
@@ -583,7 +591,8 @@ def create_modalidades_evolucao_chart(modalidades_2025: Dict[str, int], modalida
     return fig
 
 
-def create_cursos_modalidade_chart(cursos_data: Dict[str, int], modalidade: str) -> go.Figure:
+def create_cursos_modalidade_chart(
+        cursos_data: Dict[str, int], modalidade: str) -> go.Figure:
     """
     Cria gráfico de cursos mais vendidos por modalidade específica
     """
@@ -628,7 +637,8 @@ def create_cursos_modalidade_chart(cursos_data: Dict[str, int], modalidade: str)
     return fig
 
 
-def create_evolucao_modalidades_linha_chart(evolucao_data: Dict[str, Any]) -> go.Figure:
+def create_evolucao_modalidades_linha_chart(
+        evolucao_data: Dict[str, Any]) -> go.Figure:
     """
     Cria gráfico de linha da evolução das modalidades mês a mês
     """
@@ -665,7 +675,8 @@ def create_evolucao_modalidades_linha_chart(evolucao_data: Dict[str, Any]) -> go
         valores = []
         for mes in meses:
             mes_data = evolucao_data[mes]
-            if mes_data['modalidades'] and modalidade in mes_data['modalidades']:
+            if mes_data[
+                    'modalidades'] and modalidade in mes_data['modalidades']:
                 valores.append(mes_data['modalidades'][modalidade])
             else:
                 valores.append(0)
@@ -700,7 +711,9 @@ def create_evolucao_modalidades_linha_chart(evolucao_data: Dict[str, Any]) -> go
     return fig
 
 
-def create_modalidades_comparativo_chart(dados_2024: Dict[str, int], dados_2025: Dict[str, int], dados_geral: Dict[str, int]) -> go.Figure:
+def create_modalidades_comparativo_chart(
+        dados_2024: Dict[str, int],
+        dados_2025: Dict[str, int], dados_geral: Dict[str, int]) -> go.Figure:
     """
     Cria gráfico comparativo de modalidades entre diferentes períodos
     """

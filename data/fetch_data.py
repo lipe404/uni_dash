@@ -8,7 +8,10 @@ from datetime import datetime, timedelta
 
 
 @st.cache_data(ttl=300)  # Cache por 5 minutos
-def fetch_google_sheet_data(api_key: str, sheet_id: str, range_name: str) -> Optional[pd.DataFrame]:
+def fetch_google_sheet_data(
+        api_key: str,
+        sheet_id: str,
+        range_name: str) -> Optional[pd.DataFrame]:
     """
     Busca dados de uma planilha do Google Sheets
     """
@@ -73,7 +76,8 @@ def get_parceiro_vendas_data(parceiro_nome: str) -> Optional[Dict[str, Any]]:
 
         if df_parceiros is not None:
             parceiro_data = df_parceiros[
-                df_parceiros['Parceiro - VENDAS PINCEL + GESTOR'] == parceiro_nome
+                df_parceiros[
+                    'Parceiro - VENDAS PINCEL + GESTOR'] == parceiro_nome
             ]
 
             if not parceiro_data.empty:
@@ -97,8 +101,10 @@ def get_parceiro_vendas_data(parceiro_nome: str) -> Optional[Dict[str, Any]]:
                     'parceiro': data['Parceiro - VENDAS PINCEL + GESTOR'],
                     'tipo': data['TIPO'],
                     'responsavel': data['RESPONSÁVEL'],
-                    'total_2025': pd.to_numeric(data.get('TOTAL 2025', 0), errors='coerce') or 0,
-                    'vendas_2024_2025': pd.to_numeric(data.get('VENDAS 2024 + 2025', 0), errors='coerce') or 0,
+                    'total_2025': pd.to_numeric(data.get(
+                        'TOTAL 2025', 0), errors='coerce') or 0,
+                    'vendas_2024_2025': pd.to_numeric(data.get(
+                        'VENDAS 2024 + 2025', 0), errors='coerce') or 0,
                     'vendas_mensais': vendas_mensais
                 }
 
@@ -109,9 +115,10 @@ def get_parceiro_vendas_data(parceiro_nome: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def get_parceiro_vendas_detalhadas(parceiro_nome: str) -> Optional[pd.DataFrame]:
+def get_parceiro_vendas_detalhadas(
+        parceiro_nome: str) -> Optional[pd.DataFrame]:
     """
-    Retorna dados detalhados de vendas de um parceiro específico da Base de Vendas
+    Retorna dados detalhados de vendas de um parceiro específico.
     """
     try:
         df_vendas = fetch_vendas_publicas()
@@ -148,7 +155,9 @@ def get_parceiro_vendas_detalhadas(parceiro_nome: str) -> Optional[pd.DataFrame]
         return None
 
 
-def get_evolucao_matriculas_parceiro(parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+def get_evolucao_matriculas_parceiro(
+        parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[
+            Dict[str, Any]]:
     """
     Retorna evolução de matrículas do parceiro por período.
     Agora sempre mostra dados diários para o mês selecionado.
@@ -159,7 +168,7 @@ def get_evolucao_matriculas_parceiro(parceiro_nome: str, ano: int = None, mes: i
         if df_vendas is None or df_vendas.empty:
             return None
 
-        # Garante que 'Dt Pagto' seja datetime e remove valores NaT (Not a Time)
+        # Garante que 'Dt Pagto' seja datetime e remove valores NaT
         df_vendas = df_vendas.dropna(subset=['Dt Pagto'])
         if df_vendas.empty:  # Se não houver datas válidas após a limpeza
             return None
@@ -170,7 +179,7 @@ def get_evolucao_matriculas_parceiro(parceiro_nome: str, ano: int = None, mes: i
             if df_vendas.empty:  # Se não houver dados após filtrar por ano
                 return None
 
-        # Como sempre temos um mês selecionado, sempre filtra por mês e mostra dados diários
+        # Sempre filtra por mês e mostra dados diários
         if mes:
             df_vendas = df_vendas[df_vendas['Dt Pagto'].dt.month == mes]
             if df_vendas.empty:  # Se não houver dados após filtrar por mês
@@ -197,7 +206,9 @@ def get_evolucao_matriculas_parceiro(parceiro_nome: str, ano: int = None, mes: i
         return None
 
 
-def get_modalidades_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, int]]:
+def get_modalidades_parceiro_filtradas(
+        parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[
+            str, int]]:
     """
     Retorna modalidades mais vendidas do parceiro com filtros de data
     """
@@ -209,10 +220,12 @@ def get_modalidades_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes:
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if df_filtrado.empty:
                 return None
@@ -226,7 +239,9 @@ def get_modalidades_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes:
 
             # Ordenar por quantidade e pegar top 10
             modalidades_ordenadas = dict(
-                sorted(modalidades.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(
+                    modalidades.items(), key=lambda x: x[1], reverse=True
+                    )[:10])
 
             return modalidades_ordenadas
 
@@ -237,7 +252,11 @@ def get_modalidades_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes:
         return None
 
 
-def get_cursos_parceiro_filtrados(parceiro_nome: str, ano: int = None, mes: int = None, modalidade: str = None) -> Optional[Dict[str, int]]:
+def get_cursos_parceiro_filtrados(
+        parceiro_nome: str, ano: int = None,
+        mes: int = None, modalidade: str = None
+        ) -> Optional[
+            Dict[str, int]]:
     """
     Retorna cursos mais vendidos do parceiro com filtros de data e modalidade
     """
@@ -249,13 +268,16 @@ def get_cursos_parceiro_filtrados(parceiro_nome: str, ano: int = None, mes: int 
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if modalidade and modalidade != "Todas":
-                df_filtrado = df_filtrado[df_filtrado['Nível'] == modalidade]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Nível'] == modalidade]
 
             if df_filtrado.empty:
                 return None
@@ -310,7 +332,9 @@ def get_lista_modalidades_parceiro(parceiro_nome: str) -> List[str]:
         return []
 
 
-def get_estatisticas_parceiro(parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+def get_estatisticas_parceiro(
+        parceiro_nome: str, ano: int = None, mes: int = None
+        ) -> Optional[Dict[str, Any]]:
     """
     Retorna estatísticas gerais do parceiro
     """
@@ -322,10 +346,12 @@ def get_estatisticas_parceiro(parceiro_nome: str, ano: int = None, mes: int = No
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if df_filtrado.empty:
                 return None
@@ -390,7 +416,9 @@ def get_modalidades_parceiro(parceiro_nome: str) -> Optional[Dict[str, int]]:
 
             # Ordenar por quantidade e pegar top 10
             modalidades_ordenadas = dict(
-                sorted(modalidades.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(
+                    modalidades.items(), key=lambda x: x[1], reverse=True
+                    )[:10])
 
             return modalidades_ordenadas
 
@@ -443,7 +471,10 @@ def get_cursos_parceiro(parceiro_nome: str) -> Optional[Dict[str, int]]:
 
 # Adicione esta nova função ao fetch_data.py
 
-def get_estatisticas_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes: int = None, modalidade: str = None) -> Optional[Dict[str, Any]]:
+def get_estatisticas_parceiro_filtradas(
+        parceiro_nome: str,
+        ano: int = None, mes: int = None, modalidade: str = None
+        ) -> Optional[Dict[str, Any]]:
     """
     Retorna estatísticas gerais do parceiro com filtro de modalidade
     """
@@ -455,14 +486,17 @@ def get_estatisticas_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             # Aplicar filtro de modalidade
             if modalidade and modalidade != "Todas":
-                df_filtrado = df_filtrado[df_filtrado['Nível'] == modalidade]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Nível'] == modalidade]
 
             if df_filtrado.empty:
                 return None
@@ -472,8 +506,9 @@ def get_estatisticas_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes
             total_vendas = len(df_filtrado)
             variedade_cursos = df_filtrado['Curso'].nunique()
 
-            # Se filtrado por modalidade específica, variedade_modalidades será sempre 1
-            variedade_modalidades = 1 if modalidade and modalidade != "Todas" else df_filtrado['Nível'].nunique(
+            # Se filtrado por mod. espec., variedade_modalidades será sempre 1
+            variedade_modalidades = 1 if modalidade and modalidade != "Todas" else df_filtrado[
+                'Nível'].nunique(
             )
 
             # Modalidade mais vendida (será a própria modalidade se filtrada)
@@ -528,9 +563,11 @@ def get_estatisticas_parceiro_filtradas(parceiro_nome: str, ano: int = None, mes
         return None
 
 
-def get_modalidades_parceiro_unica(parceiro_nome: str, ano: int = None, mes: int = None, modalidade: str = None) -> Optional[Dict[str, int]]:
+def get_modalidades_parceiro_unica(
+        parceiro_nome: str, ano: int = None,
+        mes: int = None, modalidade: str = None) -> Optional[Dict[str, int]]:
     """
-    Retorna dados da modalidade específica (para quando uma modalidade é selecionada)
+    Retorna dados da modalidade específica
     """
     try:
         if not modalidade or modalidade == "Todas":
@@ -543,10 +580,12 @@ def get_modalidades_parceiro_unica(parceiro_nome: str, ano: int = None, mes: int
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             # Filtrar pela modalidade específica
             df_filtrado = df_filtrado[df_filtrado['Nível'] == modalidade]
@@ -578,7 +617,7 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
             # Remove linhas onde Nível ou Curso estão vazios/nulos
             df_filtrado = df_vendas.dropna(subset=['Nível', 'Curso'])
 
-            # Remove linhas onde Nível ou Curso são strings vazias ou apenas espaços
+            # Remove linhas onde Nível ou Curso são strings vazias ou espaços
             df_filtrado = df_filtrado[
                 (df_filtrado['Nível'].str.strip() != '') &
                 (df_filtrado['Curso'].str.strip() != '')
@@ -587,7 +626,8 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
             # Remove valores que são apenas "-", "N/A", "null", etc.
             valores_invalidos = ['-', 'n/a', 'null', 'none', '']
             df_filtrado = df_filtrado[
-                ~df_filtrado['Nível'].str.lower().str.strip().isin(valores_invalidos) &
+                ~df_filtrado['Nível'].str.lower().str.strip().isin(
+                    valores_invalidos) &
                 ~df_filtrado['Curso'].str.lower(
                 ).str.strip().isin(valores_invalidos)
             ]
@@ -633,9 +673,11 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
 
             # Ordenar e pegar top 10
             modalidades_ordenadas = dict(
-                sorted(modalidades_count.items(), key=lambda x: x[1], reverse=True))
+                sorted(modalidades_count.items(),
+                       key=lambda x: x[1], reverse=True))
             cursos_ordenados = dict(
-                sorted(cursos_count.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(cursos_count.items(),
+                       key=lambda x: x[1], reverse=True)[:10])
 
             # Calcular total de matrículas (não número de linhas)
             total_matriculas = df_filtrado['Qtd. Matrículas'].sum()
@@ -654,7 +696,8 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
         return None
 
 
-def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+def get_dados_publicos_filtrados(
+        ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
     """
     Processa dados públicos com filtros de ano e mês
     """
@@ -676,10 +719,12 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if df_filtrado.empty:
                 return None
@@ -694,7 +739,8 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
             # Remove valores inválidos
             valores_invalidos = ['-', 'n/a', 'null', 'none', '']
             df_filtrado = df_filtrado[
-                ~df_filtrado['Nível'].str.lower().str.strip().isin(valores_invalidos) &
+                ~df_filtrado['Nível'].str.lower().str.strip().isin(
+                    valores_invalidos) &
                 ~df_filtrado['Curso'].str.lower(
                 ).str.strip().isin(valores_invalidos)
             ]
@@ -739,9 +785,11 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
 
             # Ordenar
             modalidades_ordenadas = dict(
-                sorted(modalidades_count.items(), key=lambda x: x[1], reverse=True))
+                sorted(modalidades_count.items(),
+                       key=lambda x: x[1], reverse=True))
             cursos_ordenados = dict(
-                sorted(cursos_count.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(cursos_count.items(),
+                       key=lambda x: x[1], reverse=True)[:10])
 
             total_matriculas = df_filtrado['Qtd. Matrículas'].sum()
 
@@ -759,7 +807,8 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
         return None
 
 
-def get_evolucao_modalidades_mensal(ano: int = 2025) -> Optional[Dict[str, Any]]:
+def get_evolucao_modalidades_mensal(
+        ano: int = 2025) -> Optional[Dict[str, Any]]:
     """
     Retorna evolução das modalidades mês a mês para um ano específico
     """

@@ -219,16 +219,19 @@ def render_evolucao_mensal(ano_evolucao):
         if len(evolucao_data) >= 2:
             # Comparar primeiro e último mês com dados
             meses_com_dados = [
-                mes for mes, dados in evolucao_data.items() if dados['modalidades']]
+                mes for mes, dados in evolucao_data.items() if dados[
+                    'modalidades']]
 
             if len(meses_com_dados) >= 2:
                 primeiro_mes = meses_com_dados[0]
                 ultimo_mes = meses_com_dados[-1]
 
                 modalidade_inicio = max(
-                    evolucao_data[primeiro_mes]['modalidades'].items(), key=lambda x: x[1])
+                    evolucao_data[primeiro_mes][
+                        'modalidades'].items(), key=lambda x: x[1])
                 modalidade_fim = max(
-                    evolucao_data[ultimo_mes]['modalidades'].items(), key=lambda x: x[1])
+                    evolucao_data[ultimo_mes][
+                        'modalidades'].items(), key=lambda x: x[1])
 
                 col_insight1, col_insight2 = st.columns(2)
 
@@ -373,7 +376,8 @@ def render_tabelas_detalhadas(dados_publicos, periodo_texto=""):
                     'Percentual': f"{(v/total_modalidades*100):.2f}%"
                 }
                 for k, v in dados_publicos['modalidades'].items()
-            ]).sort_values('Percentual', key=lambda x: x.str.rstrip('%').astype(float), ascending=False)
+            ]).sort_values('Percentual', key=lambda x: x.str.rstrip(
+                '%').astype(float), ascending=False)
 
             st.dataframe(df_modalidades, use_container_width=True,
                          hide_index=True)
@@ -393,7 +397,8 @@ def render_tabelas_detalhadas(dados_publicos, periodo_texto=""):
                     'Percentual': f"{(v/total_cursos*100):.2f}%"
                 }
                 for k, v in top_cursos.items()
-            ]).sort_values('Percentual', key=lambda x: x.str.rstrip('%').astype(float), ascending=False)
+            ]).sort_values('Percentual', key=lambda x: x.str.rstrip(
+                '%').astype(float), ascending=False)
 
             st.dataframe(df_cursos, use_container_width=True, hide_index=True)
 
@@ -412,7 +417,7 @@ def render_insights(dados_publicos, periodo_texto=""):
     Renderiza insights dos dados
     """
     st.markdown("---")
-    titulo = f"�� Insights dos Dados{' - ' + periodo_texto if periodo_texto else ''}"
+    titulo = f"Insights dos Dados{' - ' + periodo_texto if periodo_texto else ''}"
     st.markdown(f"### {titulo}")
 
     if dados_publicos['modalidades'] and dados_publicos['cursos']:

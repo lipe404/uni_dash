@@ -8,9 +8,10 @@ class AuthManager:
     def __init__(self):
         self.session_key = "authenticated_user"
 
-    def authenticate_user(self, user_id: str, chave: str) -> Optional[Dict[str, Any]]:
+    def authenticate_user(
+            self, user_id: str, chave: str) -> Optional[Dict[str, Any]]:
         """
-        Autentica o usuário com base no ID e CHAVE da planilha
+        Autentica o usuário com base no ID e CHAVE
         """
         try:
             # Busca dados dos parceiros
@@ -26,10 +27,14 @@ class AuthManager:
                 if not user_data.empty:
                     user_info = user_data.iloc[0]
                     return {
-                        'parceiro': user_info['Parceiro - VENDAS PINCEL + GESTOR'],
-                        'tipo': user_info['TIPO'],
-                        'responsavel': user_info['RESPONSÁVEL'],
-                        'id': user_info['ID'],
+                        'parceiro': user_info[
+                            'Parceiro - VENDAS PINCEL + GESTOR'],
+                        'tipo': user_info[
+                            'TIPO'],
+                        'responsavel': user_info[
+                            'RESPONSÁVEL'],
+                        'id': user_info[
+                            'ID'],
                         'authenticated': True
                     }
 
@@ -59,7 +64,9 @@ class AuthManager:
                 user_id = st.text_input(
                     "🆔 ID de Acesso", placeholder="Digite seu ID")
                 chave = st.text_input(
-                    "🔑 Chave de Acesso", type="password", placeholder="Digite sua chave")
+                    "🔑 Chave de Acesso",
+                    type="password",
+                    placeholder="Digite sua chave")
 
                 submitted = st.form_submit_button(
                     "🚀 Entrar", use_container_width=True)
@@ -83,7 +90,8 @@ class AuthManager:
         """
         Verifica se o usuário está autenticado
         """
-        return self.session_key in st.session_state and st.session_state[self.session_key].get('authenticated', False)
+        return self.session_key in st.session_state and st.session_state[
+            self.session_key].get('authenticated', False)
 
     def get_current_user(self) -> Optional[Dict[str, Any]]:
         """
