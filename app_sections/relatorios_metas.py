@@ -268,9 +268,10 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
         # Tabela de preview
         if tipo_relatorio == "Dados Detalhados":
             st.markdown("##### 📋 Primeiras 10 linhas:")
-            preview_cols = ['Aluno', 'Nível', 'Curso',
-                            'Dt Pagto', 'Qtd. Matrículas']
-            df_show = df_preview[preview_cols].head(10).copy()
+            preview_cols = ['Parceiro', 'Aluno', 'Nível', 'Curso', 'IES', 'Dt Pagto', 'Qtd. Matrículas', 'Valor Taxa Matrícula']
+            # Filtrar apenas colunas que existem
+            preview_cols_disponiveis = [col for col in preview_cols if col in df_preview.columns]
+            df_show = df_preview[preview_cols_disponiveis].head(10).copy()
             df_show['Dt Pagto'] = df_show['Dt Pagto'].dt.strftime('%d/%m/%Y')
             st.dataframe(df_show, use_container_width=True, hide_index=True)
         else:
@@ -371,8 +372,9 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
             st.info("""
             **📋 Dados Detalhados:**
             - Informações individuais dos alunos
-            - CPF, nome, curso, data de matrícula
-            - Dados completos para análise
+            - Parceiro, nome, curso, IES, data de matrícula
+            - Valores das taxas de matrícula
+            - Dados completos para análise financeira
             - Ideal para auditoria e controle
             """)
 

@@ -70,22 +70,41 @@ class ReportGenerator:
                     'border': 1
                 })
 
+                currency_format = workbook.add_format(
+                    {'num_format': 'R\$ #,##0.00'})
                 number_format = workbook.add_format({'num_format': '#,##0'})
 
                 # Aba 1: Resumo Geral
+                # Calcular valor total se a coluna existir
+                valor_total = 0
+                if 'Valor Taxa Matrícula' in df_vendas.columns:
+                    # Converter para numérico, tratando valores não numéricos
+                    df_vendas['Valor Taxa Matrícula'] = pd.to_numeric(
+                        df_vendas['Valor Taxa Matrícula'].astype(str).str.replace(
+                            'R\$', '').str.replace(',', '.').str.strip(),
+                        errors='coerce'
+                    ).fillna(0)
+                    valor_total = df_vendas['Valor Taxa Matrícula'].sum()
+
                 resumo_data = {
                     'Métrica': [
                         'Total de Vendas',
                         'Total de Matrículas',
+                        'Valor Total Arrecadado',
                         'Modalidades Diferentes',
                         'Cursos Diferentes',
+                        'IES Diferentes',
                         'Período Analisado'
                     ],
                     'Valor': [
                         len(df_vendas),
                         int(df_vendas['Qtd. Matrículas'].sum()),
+                        f"R\$ {valor_total:,.2f}".replace(
+                            ',', 'X').replace('.', ',').replace('X', '.'),
                         df_vendas['Nível'].nunique(),
                         df_vendas['Curso'].nunique(),
+                        df_vendas['IES'].nunique(
+                        ) if 'IES' in df_vendas.columns else 0,
                         f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}"
                     ]
                 }
@@ -96,43 +115,95 @@ class ReportGenerator:
 
                 worksheet = writer.sheets['Resumo Geral']
                 worksheet.set_column('A:A', 25)
-                worksheet.set_column('B:B', 20)
+                worksheet.set_column('B:B', 25)
                 worksheet.set_row(0, None, header_format)
 
                 # Aba 2: Vendas por Modalidade
-                modalidades_count = df_vendas.groupby(
-                    'Nível')['Qtd. Matrículas'].sum().reset_index()
+                modalidades_count = df_vendas.groupby('Nível').agg({
+                    'Qtd. Matrículas': 'sum',
+                    'Valor Taxa Matrícula': 'sum' if 'Valor Taxa Matrícula' in df_vendas.columns else lambda x: 0
+                }).reset_index()
                 modalidades_count = modalidades_count.sort_values(
                     'Qtd. Matrículas', ascending=False)
                 modalidades_count.columns = [
-                    'Modalidade', 'Total de Matrículas']
+                    'Modalidade', 'Total de Matrículas', 'Valor Total']
+
+                # Formatar valores monetários
+                if 'Valor Total' in modalidades_count.columns:
+                    modalidades_count['Valor Total'] = modalidades_count['Valor Total'].apply(
+                        lambda x: f"R\$ {x:,.2f}".replace(
+                            ',', 'X').replace('.', ',').replace('X', '.')
+                    )
+
                 modalidades_count.to_excel(
                     writer, sheet_name='Por Modalidade', index=False)
 
                 worksheet = writer.sheets['Por Modalidade']
                 worksheet.set_column('A:A', 30)
                 worksheet.set_column('B:B', 20)
+                worksheet.set_column('C:C', 20)
                 worksheet.set_row(0, None, header_format)
 
                 # Aba 3: Vendas por Curso
-                cursos_count = df_vendas.groupby(
-                    'Curso')['Qtd. Matrículas'].sum().reset_index()
+                cursos_count = df_vendas.groupby('Curso').agg({
+                    'Qtd. Matrículas': 'sum',
+                    'Valor Taxa Matrícula': 'sum' if 'Valor Taxa Matrícula' in df_vendas.columns else lambda x: 0
+                }).reset_index()
                 cursos_count = cursos_count.sort_values(
                     'Qtd. Matrículas', ascending=False)
-                cursos_count.columns = ['Curso', 'Total de Matrículas']
+                cursos_count.columns = [
+                    'Curso', 'Total de Matrículas', 'Valor Total']
+
+                # Formatar valores monetários
+                if 'Valor Total' in cursos_count.columns:
+                    cursos_count['Valor Total'] = cursos_count['Valor Total'].apply(
+                        lambda x: f"R\$ {x:,.2f}".replace(
+                            ',', 'X').replace('.', ',').replace('X', '.')
+                    )
+
                 cursos_count.to_excel(
                     writer, sheet_name='Por Curso', index=False)
 
                 worksheet = writer.sheets['Por Curso']
                 worksheet.set_column('A:A', 40)
                 worksheet.set_column('B:B', 20)
+                worksheet.set_column('C:C', 20)
                 worksheet.set_row(0, None, header_format)
 
-                # Aba 4: Vendas por Mês (se ano especificado)
+                # Aba 4: Vendas por IES (se a coluna existir)
+                if 'IES' in df_vendas.columns:
+                    ies_count = df_vendas.groupby('IES').agg({
+                        'Qtd. Matrículas': 'sum',
+                        'Valor Taxa Matrícula': 'sum' if 'Valor Taxa Matrícula' in df_vendas.columns else lambda x: 0
+                    }).reset_index()
+                    ies_count = ies_count.sort_values(
+                        'Qtd. Matrículas', ascending=False)
+                    ies_count.columns = [
+                        'IES', 'Total de Matrículas', 'Valor Total']
+
+                    # Formatar valores monetários
+                    if 'Valor Total' in ies_count.columns:
+                        ies_count['Valor Total'] = ies_count['Valor Total'].apply(
+                            lambda x: f"R\$ {x:,.2f}".replace(
+                                ',', 'X').replace('.', ',').replace('X', '.')
+                        )
+
+                    ies_count.to_excel(
+                        writer, sheet_name='Por IES', index=False)
+
+                    worksheet = writer.sheets['Por IES']
+                    worksheet.set_column('A:A', 40)
+                    worksheet.set_column('B:B', 20)
+                    worksheet.set_column('C:C', 20)
+                    worksheet.set_row(0, None, header_format)
+
+                # Aba 5: Vendas por Mês (se ano especificado)
                 if ano:
                     df_vendas['Mês'] = df_vendas['Dt Pagto'].dt.month
-                    vendas_mensais = df_vendas.groupby(
-                        'Mês')['Qtd. Matrículas'].sum().reset_index()
+                    vendas_mensais = df_vendas.groupby('Mês').agg({
+                        'Qtd. Matrículas': 'sum',
+                        'Valor Taxa Matrícula': 'sum' if 'Valor Taxa Matrícula' in df_vendas.columns else lambda x: 0
+                    }).reset_index()
 
                     meses_nomes = {
                         1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
@@ -143,14 +214,24 @@ class ReportGenerator:
                     vendas_mensais['Nome do Mês'] = vendas_mensais['Mês'].map(
                         meses_nomes)
                     vendas_mensais = vendas_mensais[[
-                        'Nome do Mês', 'Qtd. Matrículas']]
-                    vendas_mensais.columns = ['Mês', 'Total de Matrículas']
+                        'Nome do Mês', 'Qtd. Matrículas', 'Valor Taxa Matrícula']]
+                    vendas_mensais.columns = [
+                        'Mês', 'Total de Matrículas', 'Valor Total']
+
+                    # Formatar valores monetários
+                    if 'Valor Total' in vendas_mensais.columns:
+                        vendas_mensais['Valor Total'] = vendas_mensais['Valor Total'].apply(
+                            lambda x: f"R\$ {x:,.2f}".replace(
+                                ',', 'X').replace('.', ',').replace('X', '.')
+                        )
+
                     vendas_mensais.to_excel(
                         writer, sheet_name='Por Mês', index=False)
 
                     worksheet = writer.sheets['Por Mês']
                     worksheet.set_column('A:A', 15)
                     worksheet.set_column('B:B', 20)
+                    worksheet.set_column('C:C', 20)
                     worksheet.set_row(0, None, header_format)
 
             return output.getvalue()
@@ -172,12 +253,31 @@ class ReportGenerator:
 
             output = io.BytesIO()
 
-            # Preparar dados para exportação
-            df_export = df_vendas[['CPF', 'Aluno', 'Nível',
-                                   'Curso', 'Dt Pagto', 'Qtd. Matrículas']].copy()
+            # Preparar dados para exportação com as novas colunas
+            colunas_export = ['Parceiro', 'Aluno', 'Nível', 'Curso',
+                              'IES', 'Dt Pagto', 'Qtd. Matrículas', 'Valor Taxa Matrícula']
+
+            # Verificar quais colunas existem no DataFrame
+            colunas_disponiveis = [
+                col for col in colunas_export if col in df_vendas.columns]
+
+            df_export = df_vendas[colunas_disponiveis].copy()
             df_export['Dt Pagto'] = df_export['Dt Pagto'].dt.strftime(
                 '%d/%m/%Y')
             df_export = df_export.sort_values('Dt Pagto')
+
+            # Tratar valores monetários
+            if 'Valor Taxa Matrícula' in df_export.columns:
+                df_export['Valor Taxa Matrícula'] = pd.to_numeric(
+                    df_export['Valor Taxa Matrícula'].astype(str).str.replace(
+                        'R\$', '').str.replace(',', '.').str.strip(),
+                    errors='coerce'
+                ).fillna(0)
+                # Formatar como moeda brasileira
+                df_export['Valor Taxa Matrícula'] = df_export['Valor Taxa Matrícula'].apply(
+                    lambda x: f"R\$ {x:,.2f}".replace(
+                        ',', 'X').replace('.', ',').replace('X', '.')
+                )
 
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 workbook = writer.book
@@ -197,26 +297,41 @@ class ReportGenerator:
                     writer, sheet_name='Dados Detalhados', index=False)
 
                 worksheet = writer.sheets['Dados Detalhados']
-                worksheet.set_column('A:A', 15)  # CPF
+                worksheet.set_column('A:A', 25)  # Parceiro
                 worksheet.set_column('B:B', 30)  # Aluno
                 worksheet.set_column('C:C', 20)  # Nível
                 worksheet.set_column('D:D', 40)  # Curso
-                worksheet.set_column('E:E', 12)  # Data
-                worksheet.set_column('F:F', 15)  # Qtd
+                worksheet.set_column('E:E', 25)  # IES
+                worksheet.set_column('F:F', 12)  # Data
+                worksheet.set_column('G:G', 15)  # Qtd
+                worksheet.set_column('H:H', 18)  # Valor
                 worksheet.set_row(0, None, header_format)
 
                 # Aba de resumo
+                valor_total = 0
+                if 'Valor Taxa Matrícula' in df_vendas.columns:
+                    valor_numerico = pd.to_numeric(
+                        df_vendas['Valor Taxa Matrícula'].astype(str).str.replace(
+                            'R\$', '').str.replace(',', '.').str.strip(),
+                        errors='coerce'
+                    ).fillna(0)
+                    valor_total = valor_numerico.sum()
+
                 resumo_data = {
                     'Métrica': [
                         'Total de Registros',
                         'Total de Matrículas',
+                        'Valor Total Arrecadado',
                         'Período',
                         'Modalidades Incluídas',
                         'Data de Geração'
                     ],
                     'Valor': [
                         len(df_export),
-                        int(df_export['Qtd. Matrículas'].sum()),
+                        int(df_export['Qtd. Matrículas'].sum(
+                        )) if 'Qtd. Matrículas' in df_export.columns else 0,
+                        f"R\$ {valor_total:,.2f}".replace(
+                            ',', 'X').replace('.', ',').replace('X', '.'),
                         f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}",
                         ', '.join(
                             modalidades) if modalidades and "Todas" not in modalidades else "Todas",
@@ -248,11 +363,23 @@ class ReportGenerator:
                 return b""
 
             if detailed:
-                # Relatório detalhado
-                df_export = df_vendas[['CPF', 'Aluno', 'Nível',
-                                       'Curso', 'Dt Pagto', 'Qtd. Matrículas']].copy()
+                # Relatório detalhado com as novas colunas
+                colunas_export = ['Parceiro', 'Aluno', 'Nível', 'Curso',
+                                  'IES', 'Dt Pagto', 'Qtd. Matrículas', 'Valor Taxa Matrícula']
+                colunas_disponiveis = [
+                    col for col in colunas_export if col in df_vendas.columns]
+
+                df_export = df_vendas[colunas_disponiveis].copy()
                 df_export['Dt Pagto'] = df_export['Dt Pagto'].dt.strftime(
                     '%d/%m/%Y')
+
+                # Tratar valores monetários
+                if 'Valor Taxa Matrícula' in df_export.columns:
+                    df_export['Valor Taxa Matrícula'] = pd.to_numeric(
+                        df_export['Valor Taxa Matrícula'].astype(str).str.replace(
+                            'R\$', '').str.replace(',', '.').str.strip(),
+                        errors='coerce'
+                    ).fillna(0)
             else:
                 # Relatório resumido
                 df_export = df_vendas.groupby(['Nível', 'Curso'])[
@@ -296,6 +423,16 @@ class ReportGenerator:
                 Paragraph(f"Relatório de Vendas - {parceiro_nome}", title_style))
             story.append(Spacer(1, 20))
 
+            # Calcular valor total
+            valor_total = 0
+            if 'Valor Taxa Matrícula' in df_vendas.columns:
+                valor_numerico = pd.to_numeric(
+                    df_vendas['Valor Taxa Matrícula'].astype(str).str.replace(
+                        'R\$', '').str.replace(',', '.').str.strip(),
+                    errors='coerce'
+                ).fillna(0)
+                valor_total = valor_numerico.sum()
+
             # Informações do relatório
             info_data = [
                 ['Período:',
@@ -305,7 +442,9 @@ class ReportGenerator:
                 ['Data de Geração:', datetime.now().strftime('%d/%m/%Y %H:%M')],
                 ['Total de Vendas:', str(len(df_vendas))],
                 ['Total de Matrículas:', str(
-                    int(df_vendas['Qtd. Matrículas'].sum()))]
+                    int(df_vendas['Qtd. Matrículas'].sum()))],
+                ['Valor Total:', f"R\$ {valor_total:,.2f}".replace(
+                    ',', 'X').replace('.', ',').replace('X', '.')]
             ]
 
             info_table = Table(info_data, colWidths=[2*inch, 3*inch])
@@ -324,29 +463,31 @@ class ReportGenerator:
             story.append(Spacer(1, 30))
 
             if detailed:
-                # Tabela detalhada (limitada a primeiras 50 linhas)
+                # Tabela detalhada (limitada a primeiras 30 linhas)
                 story.append(
-                    Paragraph("Detalhamento das Vendas (Primeiras 50 linhas)", styles['Heading2']))
+                    Paragraph("Detalhamento das Vendas (Primeiras 30 linhas)", styles['Heading2']))
                 story.append(Spacer(1, 10))
 
-                df_limited = df_vendas.head(50)
-                data = [['Aluno', 'Nível', 'Curso', 'Data', 'Qtd']]
+                df_limited = df_vendas.head(30)
+                data = [['Aluno', 'Nível', 'Curso', 'IES', 'Data']]
 
                 for _, row in df_limited.iterrows():
                     data.append([
-                        row['Aluno'][:20] +
-                        '...' if len(str(row['Aluno'])) > 20 else str(
+                        row['Aluno'][:15] +
+                        '...' if len(str(row['Aluno'])) > 15 else str(
                             row['Aluno']),
-                        str(row['Nível']),
-                        row['Curso'][:25] +
-                        '...' if len(str(row['Curso'])) > 25 else str(
+                        str(row['Nível'])[
+                            :15] + '...' if len(str(row['Nível'])) > 15 else str(row['Nível']),
+                        row['Curso'][:20] +
+                        '...' if len(str(row['Curso'])) > 20 else str(
                             row['Curso']),
-                        row['Dt Pagto'].strftime('%d/%m/%Y'),
-                        str(int(row['Qtd. Matrículas']))
+                        row['IES'][:15] + '...' if 'IES' in row and len(
+                            str(row['IES'])) > 15 else str(row.get('IES', 'N/A')),
+                        row['Dt Pagto'].strftime('%d/%m/%Y')
                     ])
 
                 table = Table(data, colWidths=[
-                              1.5*inch, 1*inch, 2*inch, 0.8*inch, 0.5*inch])
+                              1.2*inch, 1*inch, 1.5*inch, 1*inch, 0.8*inch])
 
             else:
                 # Tabela resumida por modalidade
