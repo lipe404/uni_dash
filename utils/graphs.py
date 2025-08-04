@@ -470,7 +470,7 @@ def create_kpi_cards(vendas_data: Dict[str, Any]):
             mes_nome_raw = [
                 mes for mes,
                 valor in vendas_mensais.items() if valor == mes_atual_valor
-                ][0]
+            ][0]
             # Tenta extrair o número do mês
             import re
             match = re.search(r'(\d{1,2})', mes_nome_raw)
@@ -799,3 +799,42 @@ def create_modalidades_comparativo_chart(
     )
 
     return fig
+
+
+def create_projection_summary_cards(projecoes: Dict, targets: Dict):
+    """Cria cards resumo das projeções"""
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            label="🔮 Próximo Mês",
+            value=targets['proximo_mes_projecao'],
+            delta=f"Confiabilidade: {projecoes['confiabilidade']}"
+        )
+
+    with col2:
+        crescimento = 0
+        if projecoes['vendas_acumuladas_atual'] > 0:
+            projecao_final = projecoes['projecoes_acumuladas'][-1] if projecoes['projecoes_acumuladas'] else 0
+            crescimento = (
+                (projecao_final - projecoes['vendas_acumuladas_atual']) / projecoes['vendas_acumuladas_atual']) * 100
+
+        st.metric(
+            label="📈 Crescimento Projetado",
+            value=f"{crescimento:.1f}%",
+            delta="vs acumulado atual"
+        )
+
+    with col3:
+        st.metric(
+            label="🎯 Falta p/ Média",
+            value=targets['falta_media_ano'],
+            delta="vendas necessárias"
+        )
+
+    with col4:
+        st.metric(
+            label="🏆 Falta p/ Melhor Mês",
+            value=targets['falta_melhor_mes'],
+            delta="vendas necessárias"
+        )
