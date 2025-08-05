@@ -20,145 +20,148 @@ class SalesProjector:
         meses_ordenados = []
         vendas_ordenadas = []
 
-        for i in range(1, 13):
-            mes_key = f"{self.meses_nomes[i].lower()[:3]}./2025"
-            if mes_key in vendas_mensais:
-                meses_ordenados.append(i)
-                vendas_ordenadas.append(vendas_mensais[mes_key])
+        # Assuming 'vendas_mensais' keys are like 'jan./2025', 'fev./2025'
+        # We need to ensure we process them in month order.
+        # It's better to convert the keys to datetime objects for proper sorting,
+        # or rely on a fixed order if we know the input always follows it.
+        # Given the fetch_data.py structure, the keys are fixed for 2025.
 
-        return np.array(meses_ordenados).reshape(-1, 1), np.array(vendas_ordenadas)
+        # Let's rebuild this to be more robust to missing months and order them correctly
+        # Assuming sales are for current year or next (2025 as per example)
+        current_year = datetime.now().year
+        historical_data_points = []
+        for i in range(1, 13):
+            month_abbr = self.meses_nomes[i].lower()[:3]
+            # Use 2025 as the year, based on the example data keys in fetch_data.py
+            # If the year changes, this logic needs to be updated.
+            mes_key_format = f"{month_abbr}./2025"
+
+            if mes_key_format in vendas_mensais:
+                # Add month number (for X) and sales value (for y)
+                historical_data_points.append(
+                    {'month_num': i, 'sales': vendas_mensais[mes_key_format]})
+
+        # Sort by month number
+        historical_data_points.sort(key=lambda x: x['month_num'])
+
+        meses_ordenados = np.array(
+            [dp['month_num'] for dp in historical_data_points]).reshape(-1, 1)
+        vendas_ordenadas = np.array([dp['sales']
+                                    for dp in historical_data_points])
+
+        return meses_ordenados, vendas_ordenadas
+
+    def _calculate_positive_growth_increment(self, historical_sales: List[int]) -> float:
+        """
+        Calcula o incremento médio de vendas baseado apenas em progressões positivas (mês a mês).
+        Retorna um valor positivo para ser adicionado a cada mês projetado.
+        """
+        if len(historical_sales) < 2:
+            # Se não há meses suficientes para calcular progressão (apenas 0 ou 1 mês histórico),
+            # usa a média simples do que existe, ou um incremento mínimo de 1.
+            return np.mean(historical_sales) if historical_sales else 1.0
+
+        positive_diffs = []
+        for i in range(1, len(historical_sales)):
+            diff = historical_sales[i] - historical_sales[i-1]
+            if diff > 0:  # Apenas diferenças positivas são consideradas para a "progressão positiva"
+                positive_diffs.append(diff)
+
+        if positive_diffs:
+            return np.mean(positive_diffs)
+        else:
+            # Se não houver *nenhuma* progressão positiva nos dados históricos,
+            # definimos um incremento padrão para garantir que a linha suba.
+            # Podemos usar uma porcentagem do último valor ou um valor fixo.
+            last_val = historical_sales[-1]
+            if last_val > 0:
+                # Incremento de 5% do último valor, ou mínimo de 1, o que for maior
+                return max(1.0, last_val * 0.05)
+            return 1.0  # Incremento mínimo de 1 se o último valor for zero ou negativo
 
     def calculate_projections(self, vendas_mensais: Dict[str, int], meses_projecao: int = 6) -> Dict:
-        """Calcula projeções usando múltiplos métodos"""
+        """
+        Calcula projeções baseadas na média de progressão positiva dos meses históricos.
+        A projeção mensal parte do valor do último mês histórico.
+        """
         try:
-            X, y = self.prepare_historical_data(vendas_mensais)
+            X_hist, y_hist = self.prepare_historical_data(vendas_mensais)
 
-            if len(X) < 3:  # Precisa de pelo menos 3 pontos
-                return self._simple_projection(vendas_mensais, meses_projecao)
+            if len(y_hist) == 0:
+                # Se não há dados históricos, retorna projeções zeradas
+                st.warning(
+                    "Não há dados históricos de vendas para projeção. Projetando 0.")
+                return {
+                    'projecoes_mensais': [0] * meses_projecao,
+                    'projecoes_acumuladas': [0] * meses_projecao,
+                    'vendas_acumuladas_atual': 0,
+                    'media_mensal_atual': 0,
+                    'vendas_mes_anterior': 0,
+                    'mes_atual': datetime.now().month,
+                    'confiabilidade': 'Baixa',
+                    'meses_historicos': 0
+                }
 
-            # Método 1: Regressão Linear
-            linear_proj = self._linear_regression_projection(
-                X, y, meses_projecao)
+            # O último valor de venda histórico
+            last_historical_sales = y_hist[-1]
+            # Soma total das vendas históricas
+            total_historical_sales = int(sum(y_hist))
 
-            # Método 2: Média Móvel
-            moving_avg_proj = self._moving_average_projection(
-                y, meses_projecao)
+            # Calcular o incremento médio baseado em progressões positivas
+            positive_growth_increment = self._calculate_positive_growth_increment(
+                y_hist.tolist())
 
-            # Método 3: Tendência Sazonal
-            seasonal_proj = self._seasonal_projection(
-                vendas_mensais, meses_projecao)
+            projecoes_mensais_list = []
+            # A projeção parte do último valor histórico e adiciona o incremento
+            current_projected_value = last_historical_sales
 
-            # Combinar métodos (média ponderada)
-            final_projections = []
-            for i in range(meses_projecao):
-                combined = (
-                    linear_proj[i] * 0.4 +
-                    moving_avg_proj[i] * 0.3 +
-                    seasonal_proj[i] * 0.3
-                )
-                final_projections.append(max(0, round(combined)))
+            for _ in range(meses_projecao):
+                current_projected_value += positive_growth_increment
+                # Garante valor não negativo e arredonda
+                projecoes_mensais_list.append(
+                    round(max(0, current_projected_value)))
 
-            # Calcular acumulado atual
-            vendas_acumuladas = sum(y)
+            # Calcular projeções acumuladas
+            projecoes_acumuladas_list = []
+            current_cumulative_sales = total_historical_sales
+            for proj_m in projecoes_mensais_list:
+                current_cumulative_sales += proj_m
+                projecoes_acumuladas_list.append(current_cumulative_sales)
 
-            # Projeções acumuladas
-            projecoes_acumuladas = []
-            acumulado_atual = vendas_acumuladas
-            for proj in final_projections:
-                acumulado_atual += proj
-                projecoes_acumuladas.append(acumulado_atual)
-
-            # Calcular mês atual
-            mes_atual = datetime.now().month
-
-            # Estatísticas de comparação
-            media_ano = np.mean(y) if len(y) > 0 else 0
-            mes_anterior = y[-1] if len(y) > 0 else 0
+            # Para os KPIs, use os dados históricos conforme a definição original
+            media_ano = np.mean(y_hist) if len(y_hist) > 0 else 0
+            mes_anterior = y_hist[-1] if len(y_hist) > 0 else 0
 
             return {
-                'projecoes_mensais': final_projections,
-                'projecoes_acumuladas': projecoes_acumuladas,
-                'vendas_acumuladas_atual': int(vendas_acumuladas),
+                'projecoes_mensais': projecoes_mensais_list,
+                'projecoes_acumuladas': projecoes_acumuladas_list,
+                'vendas_acumuladas_atual': total_historical_sales,
                 'media_mensal_atual': round(media_ano, 1),
                 'vendas_mes_anterior': int(mes_anterior),
-                'mes_atual': mes_atual,
-                'confiabilidade': self._calculate_confidence(X, y),
-                'meses_historicos': len(y)
+                'mes_atual': datetime.now().month,
+                'confiabilidade': self._calculate_confidence(X_hist, y_hist),
+                'meses_historicos': len(y_hist)
             }
 
         except Exception as e:
             st.error(f"Erro ao calcular projeções: {str(e)}")
+            # Fallback para uma projeção simples em caso de erro
             return self._simple_projection(vendas_mensais, meses_projecao)
 
-    def _linear_regression_projection(self, X: np.ndarray, y: np.ndarray, meses: int) -> List[float]:
-        """Projeção usando regressão linear"""
-        model = LinearRegression()
-        model.fit(X, y)
-
-        ultimo_mes = X[-1][0] if len(X) > 0 else datetime.now().month
-        futuros_meses = np.array([[ultimo_mes + i + 1] for i in range(meses)])
-
-        return model.predict(futuros_meses).tolist()
-
-    def _moving_average_projection(self, y: np.ndarray, meses: int) -> List[float]:
-        """Projeção usando média móvel"""
-        if len(y) >= 3:
-            media_recente = np.mean(y[-3:])  # Média dos últimos 3 meses
-        else:
-            media_recente = np.mean(y)
-
-        # Aplicar pequena tendência baseada na evolução recente
-        if len(y) >= 2:
-            tendencia = (y[-1] - y[0]) / len(y)
-        else:
-            tendencia = 0
-
-        projecoes = []
-        for i in range(meses):
-            proj = media_recente + (tendencia * (i + 1))
-            projecoes.append(max(0, proj))
-
-        return projecoes
-
-    def _seasonal_projection(self, vendas_mensais: Dict[str, int], meses: int) -> List[float]:
-        """Projeção considerando sazonalidade"""
-        # Calcular média geral
-        valores = list(vendas_mensais.values())
-        media_geral = np.mean(valores) if valores else 0
-
-        # Fatores sazonais hipotéticos (baseados em padrões educacionais)
-        fatores_sazonais = {
-            1: 1.1,   # Janeiro - início do ano
-            2: 1.2,   # Fevereiro - matrículas
-            3: 1.0,   # Março
-            4: 0.9,   # Abril
-            5: 0.8,   # Maio
-            6: 0.7,   # Junho
-            7: 0.6,   # Julho - férias
-            8: 1.3,   # Agosto - volta às aulas
-            9: 1.1,   # Setembro
-            10: 1.0,  # Outubro
-            11: 0.9,  # Novembro
-            12: 0.8   # Dezembro - férias
-        }
-
-        mes_atual = datetime.now().month
-        projecoes = []
-
-        for i in range(meses):
-            mes_futuro = ((mes_atual + i) % 12) + 1
-            fator = fatores_sazonais.get(mes_futuro, 1.0)
-            proj = media_geral * fator
-            projecoes.append(max(0, proj))
-
-        return projecoes
-
     def _simple_projection(self, vendas_mensais: Dict[str, int], meses: int) -> Dict:
-        """Projeção simples quando há poucos dados"""
+        """Projeção simples quando há poucos dados ou ocorre um erro."""
         valores = list(vendas_mensais.values())
         media = np.mean(valores) if valores else 0
 
-        projecoes = [max(0, round(media)) for _ in range(meses)]
+        # Se a média for zero, e não há valores, use um incremento mínimo para projeção
+        if media == 0 and len(valores) == 0:
+            projecoes = [1] * meses  # Projetar 1 venda por mês como mínimo
+        elif media == 0 and len(valores) > 0:
+            # Se há valores históricos mas a média é 0 (e.g., todos os meses foram 0)
+            projecoes = [max(0, round(media))] * meses  # Projetar 0 ou media
+        else:
+            projecoes = [max(0, round(media))] * meses
+
         vendas_acumuladas = sum(valores)
 
         projecoes_acumuladas = []
@@ -186,35 +189,56 @@ class SalesProjector:
             return "Média"
         else:
             # Calcular R² para avaliar qualidade do ajuste
-            model = LinearRegression()
-            model.fit(X, y)
-            r2 = model.score(X, y)
+            # Necessário que X tenha mais de 1 dimensão
+            if X.shape[0] < 2:  # Or if there's no variance
+                return "Média"  # Not enough data for robust R2
 
-            if r2 > 0.8:
-                return "Alta"
-            elif r2 > 0.6:
-                return "Média"
-            else:
-                return "Baixa"
+            model = LinearRegression()
+            try:
+                model.fit(X, y)
+                r2 = model.score(X, y)
+
+                if r2 > 0.8:
+                    return "Alta"
+                elif r2 > 0.6:
+                    return "Média"
+                else:
+                    return "Baixa"
+            # Catch cases where fit fails (e.g., all y are same)
+            except ValueError:
+                return "Média"  # Fallback confidence
 
     def calculate_targets(self, projecoes: Dict, vendas_mensais: Dict[str, int]) -> Dict:
         """Calcula metas e comparações"""
         valores_historicos = list(vendas_mensais.values())
 
-        # Próximo mês
+        # Garante que valores_historicos não esteja vazio antes de chamar max()
+        if not valores_historicos:
+            # Retorna um dicionário com valores padrão/zero para evitar erros
+            return {
+                'proximo_mes_projecao': 0,
+                'falta_mes_anterior': 0,
+                'falta_media_ano': 0,
+                'falta_melhor_mes': 0,
+                'mes_anterior_vendas': 0,
+                'media_ano_vendas': 0,
+                'melhor_mes_vendas': 0
+            }
+
+        # Próximo mês (a primeira projeção mensal)
         proximo_mes_proj = projecoes['projecoes_mensais'][0] if projecoes['projecoes_mensais'] else 0
 
         # Para bater o mês anterior
         mes_anterior = projecoes['vendas_mes_anterior']
-        falta_mes_anterior = max(0, mes_anterior - proximo_mes_proj)
+        falta_mes_anterior = mes_anterior - proximo_mes_proj
 
         # Para bater a média do ano
         media_ano = projecoes['media_mensal_atual']
-        falta_media_ano = max(0, media_ano - proximo_mes_proj)
+        falta_media_ano = media_ano - proximo_mes_proj
 
         # Para bater o melhor mês
-        melhor_mes = max(valores_historicos) if valores_historicos else 0
-        falta_melhor_mes = max(0, melhor_mes - proximo_mes_proj)
+        melhor_mes = max(valores_historicos)
+        falta_melhor_mes = melhor_mes - proximo_mes_proj
 
         return {
             'proximo_mes_projecao': proximo_mes_proj,
