@@ -14,74 +14,63 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
         9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
     }
 
-    meses_nomes_completo = {  # Usado para mapear de volta as chaves de vendas_mensais
-        1: "jan.", 2: "fev.", 3: "mar.", 4: "abr.",
-        5: "mai.", 6: "jun.", 7: "jul.", 8: "ago.",
-        9: "set.", 10: "out.", 11: "nov.", 12: "dez."
+    meses_nomes_completo = {
+        1: "jan", 2: "fev", 3: "mar", 4: "abr",
+        5: "mai", 6: "jun", 7: "jul", 8: "ago",
+        9: "set", 10: "out", 11: "nov", 12: "dez"
     }
 
-    # Dados históricos
+    # Dados históricos - apenas meses com vendas > 0
     meses_historicos = []
     vendas_historicas = []
 
-    current_year = datetime.now().year  # Assumindo o ano de 2025 conforme exemplo
-
-    # Vai até o mês atual ou o último mês com dados
-    for i in range(1, datetime.now().month + 1):
-        mes_key = f"{meses_nomes_completo[i]}{current_year}"  # Ex: "jan./2025"
-        if mes_key in vendas_mensais:
+    for i in range(1, 13):
+        mes_key = f"{meses_nomes_completo[i]}./2025"
+        if mes_key in vendas_mensais and vendas_mensais[mes_key] > 0:
             meses_historicos.append(meses_nomes_curto[i])
             vendas_historicas.append(vendas_mensais[mes_key])
-        # Parar de coletar dados históricos se for 0 e não houver mais dados significativos
-        # ou se o mês atual for 0 vendas. Se o usuário tiver um mês com 0 vendas, ele aparecerá.
-        # A lógica aqui é pegar tudo que está disponível até o presente.
 
-    # Dados de projeção
+    # Dados de projeção - começar do próximo mês após o último histórico
     meses_futuros = []
     vendas_projetadas = projecoes.get('projecoes_mensais', [])
 
-    # Preencher meses futuros a partir do mês seguinte ao último histórico
-    # ou a partir do mês atual se não houver histórico.
-    # O primeiro mês a ser projetado
-    start_month_for_projection = datetime.now().month + 1
+    if meses_historicos:
+        # Encontrar o último mês histórico
+        ultimo_mes_historico = None
+        for i in range(1, 13):
+            if meses_nomes_curto[i] == meses_historicos[-1]:
+                ultimo_mes_historico = i
+                break
 
-    for i in range(len(vendas_projetadas)):
-        # Calcula o mês futuro de forma circular (ex: 12 -> 1 para o próximo ano)
-        mes_num_futuro = ((start_month_for_projection + i - 1) % 12) + 1
-        meses_futuros.append(meses_nomes_curto[mes_num_futuro])
+        # Projetar a partir do próximo mês
+        if ultimo_mes_historico:
+            for i in range(len(vendas_projetadas)):
+                mes_futuro = ((ultimo_mes_historico + i) % 12) + 1
+                meses_futuros.append(meses_nomes_curto[mes_futuro])
 
     fig = go.Figure()
 
     # Linha histórica
-    fig.add_trace(go.Scatter(
-        x=meses_historicos,
-        y=vendas_historicas,
-        mode='lines+markers',
-        name='Vendas Realizadas',
-        line=dict(color='#1f77b4', width=3),
-        marker=dict(size=8, color='#1f77b4'),
-        hovertemplate='<b>%{x}</b><br>Vendas: %{y}<extra></extra>'
-    ))
+    if meses_historicos and vendas_historicas:
+        fig.add_trace(go.Scatter(
+            x=meses_historicos,
+            y=vendas_historicas,
+            mode='lines+markers',
+            name='Vendas Realizadas',
+            line=dict(color='#1f77b4', width=3),
+            marker=dict(size=8, color='#1f77b4'),
+            hovertemplate='<b>%{x}</b><br>Vendas: %{y}<extra></extra>'
+        ))
 
-    # Linha de projeção
-    if vendas_projetadas and meses_futuros:
-        # Conectar o último ponto histórico com o primeiro ponto projetado
-        x_conexao = []
-        y_conexao = []
-
-        if meses_historicos:  # Se houver histórico, conecte do último ponto
-            x_conexao.append(meses_historicos[-1])
-            y_conexao.append(vendas_historicas[-1])
-        # else: # Se não houver histórico, a projeção começa do "zero" conceitual,
-        #         # mas com o primeiro valor projetado
-        #     pass # O primeiro ponto da projeção será o primeiro em meses_futuros/vendas_projetadas
-
-        x_conexao.extend(meses_futuros)
-        y_conexao.extend(vendas_projetadas)
+    # Linha de projeção - conectada ao último ponto histórico
+    if vendas_projetadas and meses_futuros and meses_historicos:
+        # Conectar do último ponto histórico
+        x_projecao = [meses_historicos[-1]] + meses_futuros
+        y_projecao = [vendas_historicas[-1]] + vendas_projetadas
 
         fig.add_trace(go.Scatter(
-            x=x_conexao,
-            y=y_conexao,
+            x=x_projecao,
+            y=y_projecao,
             mode='lines+markers',
             name='Projeção',
             line=dict(color='#ff7f0e', width=3, dash='dash'),
@@ -109,22 +98,21 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
         5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
         9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
     }
+
     meses_nomes_completo = {
-        1: "jan.", 2: "fev.", 3: "mar.", 4: "abr.",
-        5: "mai.", 6: "jun.", 7: "jul.", 8: "ago.",
-        9: "set.", 10: "out.", 11: "nov.", 12: "dez."
+        1: "jan", 2: "fev", 3: "mar", 4: "abr",
+        5: "mai", 6: "jun", 7: "jul", 8: "ago",
+        9: "set", 10: "out", 11: "nov", 12: "dez"
     }
 
     # Preparar dados históricos acumulados
     meses_historicos = []
     vendas_acumuladas = []
     acumulado = 0
-    current_year = datetime.now().year
 
-    # Acumulado histórico
-    for i in range(1, datetime.now().month + 1):  # Vai até o mês atual
-        mes_key = f"{meses_nomes_completo[i]}{current_year}"
-        if mes_key in vendas_mensais:
+    for i in range(1, 13):
+        mes_key = f"{meses_nomes_completo[i]}./2025"
+        if mes_key in vendas_mensais and vendas_mensais[mes_key] > 0:
             acumulado += vendas_mensais[mes_key]
             meses_historicos.append(meses_nomes_curto[i])
             vendas_acumuladas.append(acumulado)
@@ -133,44 +121,45 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
     meses_futuros = []
     projecoes_acumuladas = projecoes.get('projecoes_acumuladas', [])
 
-    # Preencher meses futuros a partir do mês seguinte ao último histórico
-    start_month_for_projection = datetime.now().month + 1
+    if meses_historicos:
+        # Encontrar o último mês histórico
+        ultimo_mes_historico = None
+        for i in range(1, 13):
+            if meses_nomes_curto[i] == meses_historicos[-1]:
+                ultimo_mes_historico = i
+                break
 
-    for i in range(len(projecoes_acumuladas)):
-        mes_num_futuro = ((start_month_for_projection + i - 1) % 12) + 1
-        meses_futuros.append(meses_nomes_curto[mes_num_futuro])
+        # Projetar a partir do próximo mês
+        if ultimo_mes_historico:
+            for i in range(len(projecoes_acumuladas)):
+                mes_futuro = ((ultimo_mes_historico + i) % 12) + 1
+                meses_futuros.append(meses_nomes_curto[mes_futuro])
 
     fig = go.Figure()
 
     # Linha histórica acumulada
-    fig.add_trace(go.Scatter(
-        x=meses_historicos,
-        y=vendas_acumuladas,
-        mode='lines+markers',
-        name='Acumulado Realizado',
-        line=dict(color='#2ca02c', width=3),
-        marker=dict(size=8, color='#2ca02c'),
-        fill='tonexty',
-        fillcolor='rgba(44, 160, 44, 0.1)',
-        hovertemplate='<b>%{x}</b><br>Acumulado: %{y}<extra></extra>'
-    ))
+    if meses_historicos and vendas_acumuladas:
+        fig.add_trace(go.Scatter(
+            x=meses_historicos,
+            y=vendas_acumuladas,
+            mode='lines+markers',
+            name='Acumulado Realizado',
+            line=dict(color='#2ca02c', width=3),
+            marker=dict(size=8, color='#2ca02c'),
+            fill='tonexty',
+            fillcolor='rgba(44, 160, 44, 0.1)',
+            hovertemplate='<b>%{x}</b><br>Acumulado: %{y}<extra></extra>'
+        ))
 
     # Linha de projeção acumulada
-    if projecoes_acumuladas and meses_futuros:
-        # Conectar o último ponto histórico com o primeiro ponto projetado
-        x_conexao = []
-        y_conexao = []
-
-        if meses_historicos:  # Se houver histórico, conecte do último ponto
-            x_conexao.append(meses_historicos[-1])
-            y_conexao.append(vendas_acumuladas[-1])
-
-        x_conexao.extend(meses_futuros)
-        y_conexao.extend(projecoes_acumuladas)
+    if projecoes_acumuladas and meses_futuros and meses_historicos:
+        # Conectar do último ponto histórico
+        x_acumulado_proj = [meses_historicos[-1]] + meses_futuros
+        y_acumulado_proj = [vendas_acumuladas[-1]] + projecoes_acumuladas
 
         fig.add_trace(go.Scatter(
-            x=x_conexao,
-            y=y_conexao,
+            x=x_acumulado_proj,
+            y=y_acumulado_proj,
             mode='lines+markers',
             name='Projeção Acumulada',
             line=dict(color='#d62728', width=3, dash='dash'),
@@ -193,70 +182,62 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
 def create_targets_comparison_chart(targets: Dict) -> go.Figure:
     """Cria gráfico de comparação com metas"""
 
-    # Ajustado para considerar que 'falta' pode ser negativa (superou)
     categorias = ['Próximo Mês\n(Projeção)',
                   'Mês Anterior', 'Média do Ano', 'Melhor Mês']
-    valores_referencia = [  # Estes são os valores para os quais a projeção é comparada
-        # Esta é a própria projeção, não um target a ser batido por outra projeção
+
+    # Valores de referência
+    valores_referencia = [
         targets['proximo_mes_projecao'],
         targets['mes_anterior_vendas'],
         targets['media_ano_vendas'],
         targets['melhor_mes_vendas']
     ]
 
-    # Diferença da projeção para os benchmarks (projeção - benchmark)
-    # Se > 0, superou. Se < 0, falta.
-    diferencas_da_projecao = [
-        0,  # A projeção é o próprio valor
-        targets['proximo_mes_projecao'] - targets['mes_anterior_vendas'],
-        targets['proximo_mes_projecao'] - targets['media_ano_vendas'],
-        targets['proximo_mes_projecao'] - targets['melhor_mes_vendas']
-    ]
-
     fig = go.Figure()
 
-    # Barras para os valores de referência (Próximo Mês Projeção, Mês Anterior, Média do Ano, Melhor Mês)
-    # Mês Anterior, Média do Ano e Melhor Mês são os "alvos"
+    # Barras principais - valores de referência
+    cores_barras = ['#3498db', '#2ecc71', '#f39c12', '#9b59b6']
+
     fig.add_trace(go.Bar(
-        name='Projeção / Benchmark',
+        name='Valores',
         x=categorias,
         y=valores_referencia,
-        # Azul para projeção, Verde para benchmarks
-        marker_color=['#3498db'] + ['#2ecc71'] * 3,
+        marker_color=cores_barras,
         text=[f"{val:.0f}" for val in valores_referencia],
         textposition='outside',
         hovertemplate='<b>%{x}</b><br>Valor: %{y}<extra></extra>'
     ))
 
-    # Barras para a diferença em relação à projeção
-    # O que falta (se negativo) ou o que superou (se positivo)
-    valores_diferenca = []
-    textos_diferenca = []
-    cores_diferenca = []
+    # Adicionar linha de referência da projeção
+    fig.add_hline(
+        y=targets['proximo_mes_projecao'],
+        line_dash="dash",
+        line_color="red",
+        annotation_text=f"Projeção: {targets['proximo_mes_projecao']}",
+        annotation_position="top right"
+    )
 
-    for i, diff in enumerate(diferencas_da_projecao):
-        if i == 0:  # Para "Próximo Mês (Projeção)", não há "falta"
-            valores_diferenca.append(0)
-            textos_diferenca.append('')
-            cores_diferenca.append('rgba(0,0,0,0)')  # Transparente
-        elif diff < 0:  # Falta para atingir (diff é negativo)
-            valores_diferenca.append(abs(diff))
-            textos_diferenca.append(f"Falta {-diff:.0f}")
-            cores_diferenca.append('#e74c3c')  # Vermelho
-        else:  # Superou o benchmark (diff é positivo ou zero)
-            valores_diferenca.append(diff)
-            textos_diferenca.append(f"Superou {diff:.0f}")
-            cores_diferenca.append('#27ae60')  # Verde
+    # Barras de diferença (o que falta para atingir)
+    valores_falta = [
+        0,  # Próximo mês é a própria projeção
+        targets['falta_mes_anterior'],
+        targets['falta_media_ano'],
+        targets['falta_melhor_mes']
+    ]
 
-    fig.add_trace(go.Bar(
-        name='Diferença vs. Projeção',
-        x=categorias,
-        y=valores_diferenca,
-        marker_color=cores_diferenca,
-        text=textos_diferenca,
-        textposition='outside',
-        hovertemplate='<b>%{x}</b><br>Diferença: %{y}<extra></extra>'
-    ))
+    # Adicionar barras de "falta" apenas onde há diferença positiva
+    for i, (categoria, falta) in enumerate(zip(categorias[1:], valores_falta[1:]), 1):
+        if falta > 0:
+            fig.add_trace(go.Bar(
+                name=f'Falta para {categoria}',
+                x=[categoria],
+                y=[falta],
+                marker_color='rgba(231, 76, 60, 0.6)',
+                text=[f"Falta: {falta:.0f}"],
+                textposition='outside',
+                hovertemplate=f'<b>{categoria}</b><br>Falta: {falta}<extra></extra>',
+                showlegend=False
+            ))
 
     fig.update_layout(
         title='🎯 Comparação com Metas e Benchmarks',
@@ -264,7 +245,7 @@ def create_targets_comparison_chart(targets: Dict) -> go.Figure:
         yaxis_title='Número de Vendas',
         template='plotly_white',
         height=500,
-        barmode='group'  # Permite que as barras de referência e diferença fiquem lado a lado
+        barmode='overlay'  # Sobrepor as barras de "falta"
     )
 
     return fig
