@@ -1,81 +1,105 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import pandas as pd
-from typing import Dict, List
-from datetime import datetime
+import pandas as pd  # Certifique-se que pandas está importado
+from typing import Dict, List, Optional
+from datetime import datetime, timedelta  # timedelta é útil aqui
 
 
 def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dict) -> go.Figure:
     """Cria gráfico de vendas com projeções mensais"""
 
-    meses_nomes_curto = {
-        1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
-        5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
-        9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+    # Mapeamento para converter abreviações de meses em números e vice-versa
+    _month_abbr_to_num = {
+        "jan": 1, "fev": 2, "mar": 3, "abr": 4,
+        "mai": 5, "jun": 6, "jul": 7, "ago": 8,
+        "set": 9, "out": 10, "nov": 11, "dez": 12
     }
+    _num_to_month_abbr = {v: k for k, v in _month_abbr_to_num.items()}
 
-    meses_nomes_completo = {
-        1: "jan", 2: "fev", 3: "mar", 4: "abr",
-        5: "mai", 6: "jun", 7: "jul", 8: "ago",
-        9: "set", 10: "out", 11: "nov", 12: "dez"
-    }
+    def _parse_month_key_to_date(month_key: str) -> Optional[datetime]:
+        """Converte uma chave de mês como 'jan./2025' para um objeto datetime."""
+        try:
+            parts = month_key.split('./')
+            month_abbr = parts[0].lower()
+            year = int(parts[1])
+            month_num = _month_abbr_to_num.get(month_abbr)
+            if month_num:
+                # Usamos o dia 1 para representar o mês
+                return datetime(year, month_num, 1)
+        except (IndexError, ValueError):
+            return None
+        return None
 
-    # Dados históricos - apenas meses com vendas > 0
-    meses_historicos = []
-    vendas_historicas = []
+    # --- Preparar Dados Históricos ---
+    historical_points = []
+    # Assumimos que as chaves em vendas_mensais são como 'jan./2025'
+    # e que elas podem não vir na ordem exata, então vamos usar as chaves e ordenar.
+    for month_key, sales_value in vendas_mensais.items():
+        date_obj = _parse_month_key_to_date(month_key)
+        if date_obj and sales_value > 0:  # Incluir apenas meses com vendas reais > 0
+            historical_points.append({'date': date_obj, 'sales': sales_value})
 
-    for i in range(1, 13):
-        mes_key = f"{meses_nomes_completo[i]}./2025"
-        if mes_key in vendas_mensais and vendas_mensais[mes_key] > 0:
-            meses_historicos.append(meses_nomes_curto[i])
-            vendas_historicas.append(vendas_mensais[mes_key])
+    # Criar DataFrame para facilitar a ordenação e manipulação, especialmente para datas
+    df_hist = pd.DataFrame(historical_points).sort_values(
+        'date').reset_index(drop=True)
 
-    # Dados de projeção - começar do próximo mês após o último histórico
-    meses_futuros = []
+    # Extrair dados históricos para plotagem
+    x_historical = df_hist['date'].tolist()
+    y_historical = df_hist['sales'].tolist()
+
+    # --- Preparar Dados de Projeção ---
     vendas_projetadas = projecoes.get('projecoes_mensais', [])
 
-    if meses_historicos:
-        # Encontrar o último mês histórico
-        ultimo_mes_historico = None
-        for i in range(1, 13):
-            if meses_nomes_curto[i] == meses_historicos[-1]:
-                ultimo_mes_historico = i
-                break
+    x_projection = []
+    y_projection = []
 
-        # Projetar a partir do próximo mês
-        if ultimo_mes_historico:
-            for i in range(len(vendas_projetadas)):
-                mes_futuro = ((ultimo_mes_historico + i) % 12) + 1
-                meses_futuros.append(meses_nomes_curto[mes_futuro])
+    if not df_hist.empty:
+        last_historical_date = df_hist['date'].iloc[-1]
+        last_historical_sales = df_hist['sales'].iloc[-1]
+
+        # Adicionar o último ponto histórico à série de projeção para conectar as linhas
+        x_projection.append(last_historical_date)
+        y_projection.append(last_historical_sales)
+
+        current_proj_date = last_historical_date
+        for proj_sales in vendas_projetadas:
+            # Avançar para o próximo mês.
+            # pd.DateOffset é a forma mais robusta e recomendada para manipular meses,
+            # pois lida automaticamente com viradas de ano, meses com 30/31 dias, etc.
+            current_proj_date += pd.DateOffset(months=1)
+            x_projection.append(current_proj_date)
+            y_projection.append(proj_sales)
+    else:
+        # Lidar com o caso onde não há dados históricos (pode ser necessário definir um ponto de partida)
+        # Por simplicidade, para este bug, assumimos que df_hist não está vazio se houver projeções.
+        pass
 
     fig = go.Figure()
 
-    # Linha histórica
-    if meses_historicos and vendas_historicas:
+    # Linha Histórica
+    if x_historical and y_historical:
         fig.add_trace(go.Scatter(
-            x=meses_historicos,
-            y=vendas_historicas,
+            x=x_historical,
+            y=y_historical,
             mode='lines+markers',
             name='Vendas Realizadas',
             line=dict(color='#1f77b4', width=3),
             marker=dict(size=8, color='#1f77b4'),
-            hovertemplate='<b>%{x}</b><br>Vendas: %{y}<extra></extra>'
+            # Formato de data no tooltip
+            hovertemplate='<b>%{x|%b/%Y}</b><br>Vendas: %{y}<extra></extra>'
         ))
 
-    # Linha de projeção - conectada ao último ponto histórico
-    if vendas_projetadas and meses_futuros and meses_historicos:
-        # Conectar do último ponto histórico
-        x_projecao = [meses_historicos[-1]] + meses_futuros
-        y_projecao = [vendas_historicas[-1]] + vendas_projetadas
-
+    # Linha de Projeção
+    # Precisa de pelo menos 2 pontos para uma linha
+    if x_projection and y_projection and len(x_projection) > 1:
         fig.add_trace(go.Scatter(
-            x=x_projecao,
-            y=y_projecao,
+            x=x_projection,
+            y=y_projection,
             mode='lines+markers',
             name='Projeção',
             line=dict(color='#ff7f0e', width=3, dash='dash'),
             marker=dict(size=8, color='#ff7f0e'),
-            hovertemplate='<b>%{x}</b><br>Projeção: %{y}<extra></extra>'
+            hovertemplate='<b>%{x|%b/%Y}</b><br>Projeção: %{y}<extra></extra>'
         ))
 
     fig.update_layout(
@@ -84,7 +108,11 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
         yaxis_title='Número de Vendas',
         template='plotly_white',
         height=500,
-        hovermode='x unified'
+        hovermode='x unified',
+        xaxis=dict(
+            tickformat='%b/%Y',  # Formato do tick do eixo X (ex: Jan/2025)
+            type='date'  # CRUCIAL: Diz ao Plotly para tratar os valores do eixo X como datas
+        )
     )
 
     return fig
@@ -93,78 +121,91 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
 def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dict) -> go.Figure:
     """Cria gráfico de vendas acumuladas com projeções"""
 
-    meses_nomes_curto = {
-        1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
-        5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
-        9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+    # Mapeamento para converter abreviações de meses em números
+    _month_abbr_to_num = {
+        "jan": 1, "fev": 2, "mar": 3, "abr": 4,
+        "mai": 5, "jun": 6, "jul": 7, "ago": 8,
+        "set": 9, "out": 10, "nov": 11, "dez": 12
     }
 
-    meses_nomes_completo = {
-        1: "jan", 2: "fev", 3: "mar", 4: "abr",
-        5: "mai", 6: "jun", 7: "jul", 8: "ago",
-        9: "set", 10: "out", 11: "nov", 12: "dez"
-    }
+    def _parse_month_key_to_date(month_key: str) -> Optional[datetime]:
+        """Converte uma chave de mês como 'jan./2025' para um objeto datetime."""
+        try:
+            parts = month_key.split('./')
+            month_abbr = parts[0].lower()
+            year = int(parts[1])
+            month_num = _month_abbr_to_num.get(month_abbr)
+            if month_num:
+                # Usamos o dia 1 para representar o mês
+                return datetime(year, month_num, 1)
+        except (IndexError, ValueError):
+            return None
+        return None
 
-    # Preparar dados históricos acumulados
-    meses_historicos = []
-    vendas_acumuladas = []
-    acumulado = 0
+    # --- Preparar Dados Históricos ---
+    historical_points = []
+    for month_key, sales_value in vendas_mensais.items():
+        date_obj = _parse_month_key_to_date(month_key)
+        if date_obj and sales_value > 0:
+            historical_points.append({'date': date_obj, 'sales': sales_value})
 
-    for i in range(1, 13):
-        mes_key = f"{meses_nomes_completo[i]}./2025"
-        if mes_key in vendas_mensais and vendas_mensais[mes_key] > 0:
-            acumulado += vendas_mensais[mes_key]
-            meses_historicos.append(meses_nomes_curto[i])
-            vendas_acumuladas.append(acumulado)
+    df_hist = pd.DataFrame(historical_points).sort_values(
+        'date').reset_index(drop=True)
 
-    # Dados de projeção acumulada
-    meses_futuros = []
+    # Calcular vendas acumuladas históricas
+    df_hist['cumulative_sales'] = df_hist['sales'].cumsum()
+
+    x_historical_cum = df_hist['date'].tolist()
+    y_historical_cum = df_hist['cumulative_sales'].tolist()
+
+    # --- Preparar Dados de Projeção Acumulada ---
     projecoes_acumuladas = projecoes.get('projecoes_acumuladas', [])
 
-    if meses_historicos:
-        # Encontrar o último mês histórico
-        ultimo_mes_historico = None
-        for i in range(1, 13):
-            if meses_nomes_curto[i] == meses_historicos[-1]:
-                ultimo_mes_historico = i
-                break
+    x_projection_cum = []
+    y_projection_cum = []
 
-        # Projetar a partir do próximo mês
-        if ultimo_mes_historico:
-            for i in range(len(projecoes_acumuladas)):
-                mes_futuro = ((ultimo_mes_historico + i) % 12) + 1
-                meses_futuros.append(meses_nomes_curto[mes_futuro])
+    if not df_hist.empty:
+        last_historical_date = df_hist['date'].iloc[-1]
+        last_historical_cumulative_sales = df_hist['cumulative_sales'].iloc[-1]
+
+        # Adicionar o último ponto histórico à série de projeção para conectar as linhas
+        x_projection_cum.append(last_historical_date)
+        y_projection_cum.append(last_historical_cumulative_sales)
+
+        current_proj_date = last_historical_date
+        for proj_cum_sales in projecoes_acumuladas:
+            current_proj_date += pd.DateOffset(months=1)
+            x_projection_cum.append(current_proj_date)
+            y_projection_cum.append(proj_cum_sales)
+    else:
+        pass  # Lidar com o caso sem dados históricos, se necessário
 
     fig = go.Figure()
 
-    # Linha histórica acumulada
-    if meses_historicos and vendas_acumuladas:
+    # Linha Histórica Acumulada
+    if x_historical_cum and y_historical_cum:
         fig.add_trace(go.Scatter(
-            x=meses_historicos,
-            y=vendas_acumuladas,
+            x=x_historical_cum,
+            y=y_historical_cum,
             mode='lines+markers',
             name='Acumulado Realizado',
             line=dict(color='#2ca02c', width=3),
             marker=dict(size=8, color='#2ca02c'),
             fill='tonexty',
             fillcolor='rgba(44, 160, 44, 0.1)',
-            hovertemplate='<b>%{x}</b><br>Acumulado: %{y}<extra></extra>'
+            hovertemplate='<b>%{x|%b/%Y}</b><br>Acumulado: %{y}<extra></extra>'
         ))
 
-    # Linha de projeção acumulada
-    if projecoes_acumuladas and meses_futuros and meses_historicos:
-        # Conectar do último ponto histórico
-        x_acumulado_proj = [meses_historicos[-1]] + meses_futuros
-        y_acumulado_proj = [vendas_acumuladas[-1]] + projecoes_acumuladas
-
+    # Linha de Projeção Acumulada
+    if x_projection_cum and y_projection_cum and len(x_projection_cum) > 1:
         fig.add_trace(go.Scatter(
-            x=x_acumulado_proj,
-            y=y_acumulado_proj,
+            x=x_projection_cum,
+            y=y_projection_cum,
             mode='lines+markers',
             name='Projeção Acumulada',
             line=dict(color='#d62728', width=3, dash='dash'),
             marker=dict(size=8, color='#d62728'),
-            hovertemplate='<b>%{x}</b><br>Projeção Acumulada: %{y}<extra></extra>'
+            hovertemplate='<b>%{x|%b/%Y}</b><br>Projeção Acumulada: %{y}<extra></extra>'
         ))
 
     fig.update_layout(
@@ -173,7 +214,11 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
         yaxis_title='Vendas Acumuladas',
         template='plotly_white',
         height=500,
-        hovermode='x unified'
+        hovermode='x unified',
+        xaxis=dict(
+            tickformat='%b/%Y',
+            type='date'
+        )
     )
 
     return fig
