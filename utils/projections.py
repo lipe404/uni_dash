@@ -29,26 +29,83 @@ class SalesProjector:
 
         return meses_ordenados, vendas_ordenadas
 
-    def _calculate_positive_growth_increment(self, historical_sales: List[int]) -> float:
+    def _calculate_average_monthly_change(self, historical_sales: List[int]) -> float:
         """
-        Calcula o incremento médio de vendas baseado apenas em progressões positivas
+        Calcula a média de TODAS as variações mensais (positivas e negativas).
+        Isso torna a projeção mais realista, considerando tanto crescimentos quanto declínios.
         """
         if len(historical_sales) < 2:
-            # Se há apenas 1 mês ou menos, usar 10% do valor como incremento
-            return max(1.0, historical_sales[0] * 0.1) if historical_sales else 1.0
+            # Se há apenas 1 mês ou menos, usar 5% do valor como incremento padrão
+            return max(1.0, historical_sales[0] * 0.05) if historical_sales else 1.0
 
-        positive_diffs = []
+        all_diffs = []
         for i in range(1, len(historical_sales)):
             diff = historical_sales[i] - historical_sales[i-1]
-            if diff > 0:  # Apenas progressões positivas
-                positive_diffs.append(diff)
+            # Incluir TODAS as diferenças (positivas e negativas)
+            all_diffs.append(diff)
 
-        if positive_diffs:
-            return np.mean(positive_diffs)
+        if all_diffs:
+            average_change = np.mean(all_diffs)
+
+            # Se a média for muito negativa, aplicar um limite mínimo
+            # para evitar projeções que caiam para zero ou negativo
+            # Limite: não mais que 50% de queda
+            if average_change < -historical_sales[-1] * 0.5:
+                # Máximo 10% de queda por mês
+                average_change = -historical_sales[-1] * 0.1
+
+            return average_change
         else:
-            # Se não há progressão positiva, usar 5% do último valor
+            # Fallback: crescimento mínimo de 1% do último valor
             last_val = historical_sales[-1]
-            return max(1.0, last_val * 0.05) if last_val > 0 else 1.0
+            return max(1.0, last_val * 0.01) if last_val > 0 else 1.0
+
+    def _calculate_cumulative_projections(self, historical_sales: List[int], meses_projecao: int) -> List[int]:
+        """
+        Calcula projeções acumuladas baseadas na média mensal histórica.
+        O acumulado SEMPRE cresce, nunca diminui.
+        """
+        if not historical_sales:
+            # Se não há dados históricos, usar crescimento padrão
+            base_monthly = 5  # 5 vendas por mês como padrão
+            total_atual = 0
+        else:
+            # Calcular média mensal dos dados históricos
+            media_mensal = np.mean(historical_sales)
+            total_atual = sum(historical_sales)
+
+            # Se a média for muito baixa, aplicar um mínimo
+            base_monthly = max(1, media_mensal)
+
+        # Calcular projeções acumuladas
+        projecoes_acumuladas = []
+        acumulado_atual = total_atual
+
+        for i in range(meses_projecao):
+            # Cada mês adiciona pelo menos a média mensal ao acumulado
+            # Pode incluir um pequeno fator de crescimento baseado na tendência
+            if len(historical_sales) >= 2:
+                # Calcular tendência de crescimento da média mensal
+                primeiro_mes = historical_sales[0]
+                ultimo_mes = historical_sales[-1]
+                crescimento_percentual = (
+                    ultimo_mes - primeiro_mes) / primeiro_mes if primeiro_mes > 0 else 0
+
+                # Aplicar crescimento gradual (limitado a ±20% por mês)
+                fator_crescimento = max(-0.2, min(0.2,
+                                        crescimento_percentual / len(historical_sales)))
+                incremento_mensal = base_monthly * (1 + fator_crescimento)
+            else:
+                # Sem dados suficientes, usar média simples
+                incremento_mensal = base_monthly
+
+            # Garantir que o incremento seja sempre positivo (acumulado sempre cresce)
+            incremento_mensal = max(1, incremento_mensal)
+
+            acumulado_atual += incremento_mensal
+            projecoes_acumuladas.append(round(acumulado_atual))
+
+        return projecoes_acumuladas
 
     def get_previous_month_sales(self, vendas_mensais: Dict[str, int]) -> int:
         """Identifica as vendas do mês anterior ao atual"""
@@ -74,7 +131,7 @@ class SalesProjector:
 
     def calculate_projections(self, vendas_mensais: Dict[str, int], meses_projecao: int = 6) -> Dict:
         """
-        Calcula projeções baseadas na média de progressão positiva
+        Calcula projeções mensais e acumuladas
         """
         try:
             meses_hist, vendas_hist = self.prepare_historical_data(
@@ -96,46 +153,23 @@ class SalesProjector:
             last_historical_sales = vendas_hist[-1]
             total_historical_sales = sum(vendas_hist)
 
-            # Calcular incremento baseado em progressão positiva
-            positive_growth_increment = self._calculate_positive_growth_increment(
+            # Calcular incremento baseado na média de TODAS as variações (para projeções mensais)
+            average_monthly_change = self._calculate_average_monthly_change(
                 vendas_hist)
 
-            # Projeções mensais - cada mês cresce baseado no incremento
+            # Projeções mensais - cada mês varia baseado na média de mudanças
             projecoes_mensais_list = []
             current_projected_value = last_historical_sales
 
             for i in range(meses_projecao):
-                current_projected_value += positive_growth_increment
+                current_projected_value += average_monthly_change
+                # Garantir que as vendas projetadas não fiquem negativas
                 projecoes_mensais_list.append(
                     round(max(0, current_projected_value)))
 
-            # Projeções acumuladas
-            projecoes_acumuladas_list = []
-            current_cumulative = total_historical_sales
-
-            for proj_mensal in projecoes_mensais_list:
-                # Somar a projeção mensal ao acumulado
-                # Mas a projeção mensal já é o valor total do mês, não o incremento
-                # Então precisamos somar apenas o incremento real
-                incremento_mensal = proj_mensal - (projecoes_mensais_list[projecoes_mensais_list.index(
-                    proj_mensal) - 1] if projecoes_mensais_list.index(proj_mensal) > 0 else last_historical_sales)
-                current_cumulative += incremento_mensal
-                projecoes_acumuladas_list.append(current_cumulative)
-
-            # Recalcular corretamente as projeções acumuladas
-            projecoes_acumuladas_list = []
-            current_cumulative = total_historical_sales
-
-            for i, proj_mensal in enumerate(projecoes_mensais_list):
-                if i == 0:
-                    # Primeiro mês: somar a diferença entre a projeção e o último histórico
-                    incremento = proj_mensal - last_historical_sales
-                else:
-                    # Meses seguintes: somar a diferença entre esta projeção e a anterior
-                    incremento = proj_mensal - projecoes_mensais_list[i-1]
-
-                current_cumulative += incremento
-                projecoes_acumuladas_list.append(current_cumulative)
+            # Projeções acumuladas - usando método específico que SEMPRE cresce
+            projecoes_acumuladas_list = self._calculate_cumulative_projections(
+                vendas_hist, meses_projecao)
 
             # Estatísticas
             media_ano = np.mean(vendas_hist)
@@ -185,20 +219,25 @@ class SalesProjector:
         else:
             media = np.mean(valores_positivos)
 
-        # Projeção com crescimento de 5% ao mês
+        # Projeção com variação baseada na tendência dos dados
         projecoes = []
+        if len(valores_positivos) >= 2:
+            # Calcular tendência simples
+            tendencia = (
+                valores_positivos[-1] - valores_positivos[0]) / len(valores_positivos)
+        else:
+            tendencia = media * 0.02  # 2% de crescimento padrão
+
         valor_base = media
         for i in range(meses):
-            valor_base *= 1.05  # Crescimento de 5%
-            projecoes.append(round(valor_base))
+            valor_base += tendencia
+            projecoes.append(round(max(1, valor_base)))  # Mínimo de 1 venda
 
         vendas_acumuladas = sum(valores)
 
-        projecoes_acumuladas = []
-        acumulado = vendas_acumuladas
-        for proj in projecoes:
-            acumulado += proj
-            projecoes_acumuladas.append(acumulado)
+        # Projeções acumuladas usando método específico
+        projecoes_acumuladas = self._calculate_cumulative_projections(
+            valores_positivos, meses)
 
         mes_anterior_vendas = self.get_previous_month_sales(vendas_mensais)
 
