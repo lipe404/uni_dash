@@ -268,11 +268,20 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
         # Tabela de preview
         if tipo_relatorio == "Dados Detalhados":
             st.markdown("##### 📋 Primeiras 10 linhas:")
-            preview_cols = ['Parceiro', 'Aluno', 'Nível', 'Curso', 'IES', 'Dt Pagto', 'Qtd. Matrículas', 'Valor Taxa Matrícula']
+            preview_cols = ['Parceiro', 'Aluno', 'Nível', 'Curso', 'IES',
+                            'Dt Pagto', 'Qtd. Matrículas', 'Valor Taxa Matrícula']
             # Filtrar apenas colunas que existem
-            preview_cols_disponiveis = [col for col in preview_cols if col in df_preview.columns]
+            preview_cols_disponiveis = [
+                col for col in preview_cols if col in df_preview.columns]
             df_show = df_preview[preview_cols_disponiveis].head(10).copy()
             df_show['Dt Pagto'] = df_show['Dt Pagto'].dt.strftime('%d/%m/%Y')
+
+            # Formatar valores monetários no preview
+            if 'Valor Taxa Matrícula' in df_show.columns:
+                df_show['Valor Taxa Matrícula'] = df_show['Valor Taxa Matrícula'].apply(
+                    lambda x: str(x) if pd.notna(x) else "N/A"
+                )
+
             st.dataframe(df_show, use_container_width=True, hide_index=True)
         else:
             st.markdown("##### 📊 Resumo por Modalidade:")
