@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from typing import List
+from typing import List, Optional  # Importar Optional
 from data.fetch_data import (
     get_parceiro_vendas_data,
     get_lista_modalidades_parceiro
@@ -62,24 +62,53 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
         )
 
     with col2:
-        incluir_sazonalidade = st.checkbox(
-            "🌊 Incluir Sazonalidade",
-            value=True,
-            help="Considera padrões sazonais do setor educacional"
+        model_type = st.selectbox(
+            "🧠 Modelo de Projeção:",
+            options=["Média de Variação",
+                     "Regressão Linear", "Média Móvel", "ARIMA"],
+            index=0,
+            help="Escolha o algoritmo para calcular as projeções."
         )
 
     with col3:
         if st.button("🔄 Recalcular Projeções"):
-            st.cache_data.clear()
-            st.rerun()
+            st.cache_data.clear()  # Limpa o cache para forçar recálculo
+            st.rerun()  # Reinicia o app para aplicar as mudanças
+
+    # Análise de Cenários "E se..."
+    st.markdown("#### 🧪 Análise de Cenários E se...")
+    col_scenario1, col_scenario2 = st.columns(2)
+
+    with col_scenario1:
+        growth_factor_percent = st.number_input(
+            "📈 Fator de Crescimento (%):",
+            min_value=-100.0, max_value=100.0, value=0.0, step=1.0, format="%.1f",
+            help="Aplique um fator de crescimento percentual à projeção (ex: 10 para +10%)"
+        )
+    with col_scenario2:
+        target_value_scenario = st.number_input(
+            " Meta de Vendas Final (Para o período total):",
+            min_value=0, value=0, step=1,
+            help="Se deseja atingir X vendas até o final do período projetado, digite aqui."
+        )
 
     # Calcular projeções
     with st.spinner("Calculando projeções..."):
         projector = SalesProjector()
+
+        # Passar os parâmetros de modelo e fator de crescimento
         projecoes = projector.calculate_projections(
             vendas_data['vendas_mensais'],
-            meses_projecao
+            meses_projecao,
+            model_type=model_type,
+            growth_factor=growth_factor_percent  # Passa o fator de crescimento aqui
         )
+
+        # Para a meta de vendas final, é mais complexo, pois exige um cálculo inverso.
+        # Por enquanto, apenas exibe a projeção. Se target_value_scenario for usado para *ajustar*
+        # a projeção, exigiria um algoritmo de busca ou otimização.
+        # Vamos manter o growth_factor simples para a primeira iteração.
+
         targets = projector.calculate_targets(
             projecoes, vendas_data['vendas_mensais'])
 
@@ -123,11 +152,13 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
     col1, col2 = st.columns(2)
 
     with col1:
+        # Passar os resultados completos de projecoes para o gráfico, incluindo os bounds
         fig_mensal = create_sales_projection_chart(
             vendas_data['vendas_mensais'], projecoes)
         st.plotly_chart(fig_mensal, use_container_width=True)
 
     with col2:
+        # Passar os resultados completos de projecoes para o gráfico, incluindo os bounds
         fig_acumulado = create_cumulative_projection_chart(
             vendas_data['vendas_mensais'], projecoes)
         st.plotly_chart(fig_acumulado, use_container_width=True)
@@ -142,8 +173,9 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("##### 📊 Para Atingir Benchmarks:")
+        st.markdown("##### Para Atingir Benchmarks:")
 
+        # Usar targets['falta_mes_anterior'] diretamente, pois já calcula a diferença
         if targets['falta_mes_anterior'] > 0:
             st.warning(
                 f"**Mês Anterior:** Faltam {targets['falta_mes_anterior']} vendas para igualar")
@@ -165,8 +197,21 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
             st.success(
                 f"**Melhor Mês:** ✅ Projeção supera em {abs(targets['falta_melhor_mes'])} vendas")
 
+        # Se houver meta específica
+        if target_value_scenario > 0:
+            current_total_sales_for_projection_period = projecoes['vendas_acumuladas_atual'] + \
+                projecoes['projecoes_acumuladas'][-1] if projecoes['projecoes_acumuladas'] else projecoes['vendas_acumuladas_atual']
+            falta_target_scenario = max(
+                0, target_value_scenario - current_total_sales_for_projection_period)
+            if falta_target_scenario > 0:
+                st.info(
+                    f"**Meta Cenário:** Faltam {falta_target_scenario} vendas para atingir {target_value_scenario} até o final do período projetado.")
+            else:
+                st.success(
+                    f"**Meta Cenário:** ✅ Projeção atinge {target_value_scenario} (supera em {abs(falta_target_scenario)}).")
+
     with col2:
-        st.markdown("##### 💡 Recomendações:")
+        st.markdown("#####  Recomendações:")
 
         if projecoes['confiabilidade'] == 'Baixa':
             st.info(
@@ -174,7 +219,7 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
 
         if targets['falta_media_ano'] > 0:
             st.info(
-                f"🎯 **Foco na meta:** Concentre esforços para atingir {targets['falta_media_ano']} vendas extras")
+                f" **Foco na meta:** Concentre esforços para atingir {targets['falta_media_ano']} vendas extras")
 
         if projecoes['media_mensal_atual'] > 0:
             crescimento_necessario = (
@@ -193,7 +238,7 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
     st.markdown("### 📄 Geração de Relatórios")
 
     # Filtros para relatórios
-    st.markdown("#### 🔍 Filtros do Relatório")
+    st.markdown("####  Filtros do Relatório")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -267,7 +312,7 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
 
         # Tabela de preview
         if tipo_relatorio == "Dados Detalhados":
-            st.markdown("##### 📋 Primeiras 10 linhas:")
+            st.markdown("#####  Primeiras 10 linhas:")
             preview_cols = ['Parceiro', 'Aluno', 'Nível', 'Curso', 'IES',
                             'Dt Pagto', 'Qtd. Matrículas', 'Valor Taxa Matrícula']
             # Filtrar apenas colunas que existem
@@ -408,7 +453,7 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
             - Fácil compartilhamento
             - Visualização profissional
 
-            **🔍 Filtros:**
+            **�� Filtros:**
             - Use filtros específicos para análises direcionadas
             - Combine ano + mês para relatórios mensais
             - Selecione modalidades específicas para análise segmentada
