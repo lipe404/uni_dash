@@ -582,7 +582,7 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
         return
 
     # Estatísticas dos inadimplentes
-    st.markdown("#### �� Estatísticas de Inadimplência")
+    st.markdown("#### Estatísticas de Inadimplência")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -764,7 +764,6 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
         - Alunos que pagaram a taxa de matrícula
         - Mas NÃO pagaram a primeira mensalidade
         - Status: "Não pagou a primeira mensalidade"
-        - Excluídos cursos "Não é um curso do Pincel"
         """)
 
     with col2:
@@ -772,7 +771,7 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
         **🎯 Modalidades analisadas:**
         - **Graduação:** Cursos de bacharelado e licenciatura
         - **Segunda Graduação:** Segundo curso superior
-        - **Tecnólogo:** Cursos superiores de tecnologia
+        - **Tecnólogo:** Cursos de graduação em tecnólogo
         - Outras modalidades não são incluídas neste relatório
         """)
 
