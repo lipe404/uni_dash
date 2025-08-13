@@ -470,7 +470,7 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
         """)
 
 
-# FUNÇÃO PARA A SEÇÃO DE INADIMPLENTES
+# SEÇÃO DE INADIMPLENTES
 def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: List[str]):
     """Renderiza seção de relatórios de inadimplentes"""
 
@@ -483,7 +483,8 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
     Este relatório identifica alunos que **pagaram a taxa de matrícula** mas **NÃO pagaram a primeira mensalidade**.
 
     - ✅ **Incluídos:** Alunos com status "Não pagou a primeira mensalidade"
-    - ❌ **Excluídos:** Cursos que "Não é um curso do Pincel" ou com datas de pagamento registradas.
+    - ❌ **Excluídos:** Cursos que "Não é um curso do Pincel" ou com datas de pagamento registradas
+    - 🎯 **Modalidades:** Apenas Graduação, Segunda Graduação e Tecnólogo
     """)
 
     # Verificar se há dados de inadimplentes
@@ -540,19 +541,28 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
         )
 
     with col3:
+        # ALTERAÇÃO: Modalidades específicas para inadimplentes
+        modalidades_inadimplentes_opcoes = [
+            "Todas", "Graduação", "Segunda Graduação", "Tecnólogo"]
         modalidades_inadimplentes = st.multiselect(
             "🎯 Modalidades:",
-            options=["Todas"] + modalidades_disponiveis,
-            default=["Todas"],
-            help="Selecione modalidades específicas ou 'Todas'",
+            options=modalidades_inadimplentes_opcoes,
+            # Por padrão, todas as 3 modalidades
+            default=["Graduação", "Segunda Graduação", "Tecnólogo"],
+            help="Modalidades disponíveis para análise de inadimplência",
             key="modalidades_inadimplentes"
         )
 
     # Preparar parâmetros
     ano_param = None if ano_inadimplente == "Todos" else ano_inadimplente
     mes_param = meses[mes_inadimplente]
-    modalidades_param = modalidades_inadimplentes if modalidades_inadimplentes else [
-        "Todas"]
+
+    # Se "Todas" está selecionado, usar as 3 modalidades permitidas
+    if "Todas" in modalidades_inadimplentes:
+        modalidades_param = ["Graduação", "Segunda Graduação", "Tecnólogo"]
+    else:
+        modalidades_param = modalidades_inadimplentes if modalidades_inadimplentes else [
+            "Graduação", "Segunda Graduação", "Tecnólogo"]
 
     # Buscar dados filtrados
     with st.spinner("Carregando dados de inadimplentes..."):
@@ -562,10 +572,17 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
 
     if df_inadimplentes is None or df_inadimplentes.empty:
         st.info("ℹ️ Nenhum aluno inadimplente encontrado para os filtros selecionados.")
+
+        # Informação adicional sobre modalidades
+        st.info("""
+        **💡 Lembre-se:**
+        - Apenas as modalidades **Graduação**, **Segunda Graduação** e **Tecnólogo** são analisadas para inadimplência
+        - Outras modalidades não são incluídas neste relatório
+        """)
         return
 
     # Estatísticas dos inadimplentes
-    st.markdown("####  Estatísticas de Inadimplência")
+    st.markdown("#### �� Estatísticas de Inadimplência")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -598,7 +615,7 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
         )
 
     # Análise por modalidade
-    st.markdown("####  Análise por Modalidade")
+    st.markdown("#### 📊 Análise por Modalidade")
 
     modalidades_inadimplentes_count = df_inadimplentes.groupby(
         'Nível')['Qtd. Matrículas'].sum().reset_index()
@@ -626,11 +643,14 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
                 modalidades_inadimplentes_count,
                 values='Inadimplentes',
                 names='Modalidade',
-                title="Distribuição de Inadimplentes por Modalidade"
+                title="Distribuição de Inadimplentes por Modalidade",
+                # Cores específicas para as 3 modalidades
+                color_discrete_sequence=['#ff6b6b', '#4ecdc4', '#45b7d1']
             )
             fig.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig, use_container_width=True)
 
+    # Preview dos dados
     st.markdown("#### 👀 Preview dos Alunos Inadimplentes")
 
     # Preparar colunas para exibição
@@ -749,13 +769,11 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
 
     with col2:
         st.info("""
-        **📋 Dados incluídos no relatório:**
-        - Nome completo do aluno
-        - Modalidade e curso
-        - IES (Instituição de Ensino)
-        - Data de pagamento da matrícula
-        - Status da primeira mensalidade
-        - Quantidade de matrículas
+        **🎯 Modalidades analisadas:**
+        - **Graduação:** Cursos de bacharelado e licenciatura
+        - **Segunda Graduação:** Segundo curso superior
+        - **Tecnólogo:** Cursos superiores de tecnologia
+        - Outras modalidades não são incluídas neste relatório
         """)
 
     # Dicas de uso
@@ -782,4 +800,9 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
            - Gere relatórios mensais de inadimplência
            - Acompanhe a evolução dos números
            - Defina metas de redução de inadimplência
+
+        **🎯 Foco nas modalidades principais:**
+        - Graduação, Segunda Graduação e Tecnólogo representam o core business
+        - Concentre esforços de cobrança nessas modalidades
+        - Monitore tendências específicas de cada modalidade
         """)

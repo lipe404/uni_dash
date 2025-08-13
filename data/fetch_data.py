@@ -1050,6 +1050,7 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
 def get_inadimplentes_filtrados(parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> Optional[pd.DataFrame]:
     """
     Retorna dados de inadimplentes com filtros aplicados
+    Modalidades permitidas: Graduação, Segunda Graduação, Tecnólogo
     """
     try:
         df_inadimplentes = get_inadimplentes_parceiro(parceiro_nome)
@@ -1066,8 +1067,21 @@ def get_inadimplentes_filtrados(parceiro_nome: str, ano: int = None, mes: int = 
         if mes:
             df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
 
+        # Filtrar apenas modalidades permitidas para inadimplentes
+        modalidades_permitidas = ['Graduação', 'Segunda Graduação', 'Tecnólogo']
+
+        # Primeiro filtrar apenas as modalidades permitidas
+        df_filtrado = df_filtrado[df_filtrado['Nível'].isin(modalidades_permitidas)]
+
+        # Depois aplicar o filtro específico do usuário
         if modalidades and "Todas" not in modalidades:
-            df_filtrado = df_filtrado[df_filtrado['Nível'].isin(modalidades)]
+            # Garantir que as modalidades selecionadas estão na lista permitida
+            modalidades_validas = [m for m in modalidades if m in modalidades_permitidas]
+            if modalidades_validas:
+                df_filtrado = df_filtrado[df_filtrado['Nível'].isin(modalidades_validas)]
+            else:
+                # Se nenhuma modalidade válida foi selecionada, retornar vazio
+                return pd.DataFrame()
 
         return df_filtrado if not df_filtrado.empty else None
 
