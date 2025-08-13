@@ -483,7 +483,7 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
     Este relatório identifica alunos que **pagaram a taxa de matrícula** mas **NÃO pagaram a primeira mensalidade**.
 
     - ✅ **Incluídos:** Alunos com status "Não pagou a primeira mensalidade"
-    - ❌ **Excluídos:** Cursos que "Não é um curso do Pincel" ou com datas de pagamento registradas
+    - ❌ **Excluídos:** Cursos que "Não é um curso do Pincel" ou com datas de pagamento registradas.
     """)
 
     # Verificar se há dados de inadimplentes
@@ -565,7 +565,7 @@ def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: Li
         return
 
     # Estatísticas dos inadimplentes
-    st.markdown("#### �� Estatísticas de Inadimplência")
+    st.markdown("####  Estatísticas de Inadimplência")
 
     col1, col2, col3, col4 = st.columns(4)
 

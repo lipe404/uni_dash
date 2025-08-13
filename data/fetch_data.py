@@ -31,9 +31,13 @@ def fetch_google_sheet_data(
                 # Verificar se todas as linhas têm o mesmo número de colunas
                 max_cols = len(headers)
 
+                # Debug: mostrar informações sobre as colunas
+                # st.write(f"Debug - Número de colunas no cabeçalho: {max_cols}")
+                # st.write(f"Debug - Cabeçalhos: {headers}")
+
                 # Normalizar todas as linhas para ter o mesmo número de colunas
                 normalized_rows = []
-                for row in rows:
+                for i, row in enumerate(rows):
                     # Se a linha tem menos colunas que o cabeçalho, preencher com strings vazias
                     if len(row) < max_cols:
                         row.extend([''] * (max_cols - len(row)))
@@ -47,6 +51,15 @@ def fetch_google_sheet_data(
 
                 # Remover linhas completamente vazias
                 df = df.dropna(how='all')
+
+                # Debug: mostrar as colunas encontradas
+                # st.write(f"Debug - Colunas no DataFrame: {list(df.columns)}")
+
+                # Verificar se as colunas de inadimplência existem
+                colunas_inadimplencia = [
+                    'Primeira Mensalidade Dt. Pagto',
+                    'Primeira Mensalidade Valor. Pagto'
+                ]
 
                 return df
             else:
@@ -921,18 +934,61 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
         df_vendas = fetch_vendas_publicas()
 
         if df_vendas is not None and not df_vendas.empty:
+            # Debug: mostrar todas as colunas disponíveis
+            # st.write("Debug - Todas as colunas disponíveis:")
+
             # Filtrar vendas do parceiro específico
             vendas_parceiro = df_vendas[df_vendas['Parceiro']
                                         == parceiro_nome].copy()
 
             if not vendas_parceiro.empty:
-                # Verificar se as colunas de primeira mensalidade existem
-                if 'Primeira Mensalidade Dt. Pagto' in vendas_parceiro.columns and 'Pimeira Mensalidade Valor. Pagto' in vendas_parceiro.columns:
+                # Buscar colunas de primeira mensalidade com diferentes variações de nome
+                colunas_primeira_mensalidade_dt = [
+                    'Primeira Mensalidade Dt. Pagto',
+                    'Primeira Mensalidade\nDt. Pagto',
+                    'Primeira Mensalidade Dt Pagto',
+                    'Primeira MensalidadeDt. Pagto'
+                ]
 
+                colunas_primeira_mensalidade_valor = [
+                    'Primeira Mensalidade Valor. Pagto',
+                    'Primeira Mensalidade\nValor. Pagto',
+                    'Primeira Mensalidade Valor Pagto',
+                    'Primeira MensalidadeValor. Pagto'
+                ]
+
+                # Encontrar as colunas corretas
+                col_dt_encontrada = None
+                col_valor_encontrada = None
+
+                for col in colunas_primeira_mensalidade_dt:
+                    if col in vendas_parceiro.columns:
+                        col_dt_encontrada = col
+                        break
+
+                for col in colunas_primeira_mensalidade_valor:
+                    if col in vendas_parceiro.columns:
+                        col_valor_encontrada = col
+                        break
+
+                # Se não encontrou as colunas exatas, tentar busca por substring
+                if not col_dt_encontrada:
+                    for col in vendas_parceiro.columns:
+                        if 'primeira mensalidade' in col.lower() and ('dt' in col.lower() or 'data' in col.lower()):
+                            col_dt_encontrada = col
+                            break
+
+                if not col_valor_encontrada:
+                    for col in vendas_parceiro.columns:
+                        if 'primeira mensalidade' in col.lower() and 'valor' in col.lower():
+                            col_valor_encontrada = col
+                            break
+
+                if col_dt_encontrada and col_valor_encontrada:
                     # Filtrar apenas alunos que não pagaram a primeira mensalidade
                     inadimplentes = vendas_parceiro[
-                        (vendas_parceiro['Primeira Mensalidade Dt. Pagto'] == 'Não pagou a primeira mensalidade.') |
-                        (vendas_parceiro['Pimeira Mensalidade Valor. Pagto']
+                        (vendas_parceiro[col_dt_encontrada] == 'Não pagou a primeira mensalidade.') |
+                        (vendas_parceiro[col_valor_encontrada]
                          == 'Não pagou a primeira mensalidade.')
                     ].copy()
 
@@ -954,11 +1010,35 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
                         else:
                             inadimplentes['Qtd. Matrículas'] = 1
 
+                        # Padronizar nomes das colunas para facilitar o uso posterior
+                        inadimplentes = inadimplentes.rename(columns={
+                            col_dt_encontrada: 'Primeira Mensalidade Dt. Pagto',
+                            col_valor_encontrada: 'Primeira Mensalidade Valor. Pagto'
+                        })
+
                         return inadimplentes
+                    else:
+                        st.info(
+                            "Nenhum aluno inadimplente encontrado para este parceiro.")
+                        return pd.DataFrame()
                 else:
+                    # Mostrar quais colunas estão disponíveis que contêm "primeira mensalidade"
+                    colunas_relacionadas = [
+                        col for col in vendas_parceiro.columns if 'primeira mensalidade' in col.lower()]
+                    if colunas_relacionadas:
+                        st.warning(
+                            f"Colunas relacionadas à primeira mensalidade encontradas: {colunas_relacionadas}")
+                    else:
+                        st.warning(
+                            "Nenhuma coluna relacionada à primeira mensalidade foi encontrada.")
+
                     st.warning(
                         "As colunas de primeira mensalidade não foram encontradas na planilha.")
                     return None
+            else:
+                st.info(
+                    f"Nenhum dado encontrado para o parceiro: {parceiro_nome}")
+                return None
 
         return None
 

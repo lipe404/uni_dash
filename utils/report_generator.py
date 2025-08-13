@@ -658,7 +658,8 @@ class ReportGenerator:
                 worksheet.set_column('F:F', 12)  # Data Matrícula
                 worksheet.set_column('G:G', 15)  # Qtd
                 worksheet.set_column('H:H', 18)  # Valor Matrícula
-                worksheet.set_column('I:I', 25)  # Status Primeira Mensalidade Data
+                # Status Primeira Mensalidade Data
+                worksheet.set_column('I:I', 25)
                 # Status Primeira Mensalidade Valor
                 worksheet.set_column('J:J', 25)
                 worksheet.set_row(0, None, header_format)
@@ -727,7 +728,8 @@ class ReportGenerator:
             return output.getvalue()
 
         except Exception as e:
-            st.error(f"Erro ao gerar relatório de inadimplentes Excel: {str(e)}")
+            st.error(
+                f"Erro ao gerar relatório de inadimplentes Excel: {str(e)}")
             return b""
 
     def generate_inadimplentes_csv(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> bytes:
@@ -837,18 +839,20 @@ class ReportGenerator:
             for _, row in df_limited.iterrows():
                 data.append([
                     row['Aluno'][:20] +
-                    '...' if len(str(row['Aluno'])) > 20 else str(row['Aluno']),
+                    '...' if len(str(row['Aluno'])) > 20 else str(
+                        row['Aluno']),
                     str(row['Nível'])[:15] + '...' if len(str(row['Nível'])
-                                                        ) > 15 else str(row['Nível']),
+                                                          ) > 15 else str(row['Nível']),
                     row['Curso'][:25] +
-                    '...' if len(str(row['Curso'])) > 25 else str(row['Curso']),
+                    '...' if len(str(row['Curso'])) > 25 else str(
+                        row['Curso']),
                     row['Dt Pagto'].strftime(
                         '%d/%m/%Y') if pd.notna(row['Dt Pagto']) else 'N/A',
                     'Não pagou 1ª mensalidade'
                 ])
 
             table = Table(data, colWidths=[
-                        1.5*inch, 1*inch, 1.5*inch, 1*inch, 1.2*inch])
+                1.5*inch, 1*inch, 1.5*inch, 1*inch, 1.2*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dc3545')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
