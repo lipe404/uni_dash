@@ -36,13 +36,17 @@ def render_relatorios_metas(parceiro_nome: str):
         return
 
     # Criar tabs
-    tab1, tab2 = st.tabs(["📊 Projeções e Metas", "📄 Geração de Relatórios"])
+    tab1, tab2, tab3 = st.tabs(
+        ["📊 Projeções e Metas", "📄 Geração de Relatórios", "⚠️ Relatório de Inadimplentes"])
 
     with tab1:
         render_projections_section(vendas_data, parceiro_nome)
 
     with tab2:
         render_reports_section(parceiro_nome, modalidades_disponiveis)
+
+    with tab3:
+        render_inadimplentes_section(parceiro_nome, modalidades_disponiveis)
 
 
 def render_projections_section(vendas_data: dict, parceiro_nome: str):
@@ -72,8 +76,8 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
 
     with col3:
         if st.button("🔄 Recalcular Projeções"):
-            st.cache_data.clear()  # Limpa o cache para forçar recálculo
-            st.rerun()  # Reinicia o app para aplicar as mudanças
+            st.cache_data.clear()
+            st.rerun()
 
     # Análise de Cenários "E se..."
     st.markdown("#### 🧪 Análise de Cenários E se...")
@@ -103,11 +107,6 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
             model_type=model_type,
             growth_factor=growth_factor_percent  # Passa o fator de crescimento aqui
         )
-
-        # Para a meta de vendas final, é mais complexo, pois exige um cálculo inverso.
-        # Por enquanto, apenas exibe a projeção. Se target_value_scenario for usado para *ajustar*
-        # a projeção, exigiria um algoritmo de busca ou otimização.
-        # Vamos manter o growth_factor simples para a primeira iteração.
 
         targets = projector.calculate_targets(
             projecoes, vendas_data['vendas_mensais'])
@@ -167,7 +166,6 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
     fig_targets = create_targets_comparison_chart(targets)
     st.plotly_chart(fig_targets, use_container_width=True)
 
-    # Análise de metas
     st.markdown("#### 🎯 Análise de Metas")
 
     col1, col2 = st.columns(2)
@@ -197,7 +195,6 @@ def render_projections_section(vendas_data: dict, parceiro_nome: str):
             st.success(
                 f"**Melhor Mês:** ✅ Projeção supera em {abs(targets['falta_melhor_mes'])} vendas")
 
-        # Se houver meta específica
         if target_value_scenario > 0:
             current_total_sales_for_projection_period = projecoes['vendas_acumuladas_atual'] + \
                 projecoes['projecoes_acumuladas'][-1] if projecoes['projecoes_acumuladas'] else projecoes['vendas_acumuladas_atual']
@@ -453,7 +450,7 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
             - Fácil compartilhamento
             - Visualização profissional
 
-            **�� Filtros:**
+            **Filtros:**
             - Use filtros específicos para análises direcionadas
             - Combine ano + mês para relatórios mensais
             - Selecione modalidades específicas para análise segmentada
@@ -470,4 +467,319 @@ def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str
         - Tente expandir o filtro para "Todos os anos" ou "Todos os meses"
         - Certifique-se de que as modalidades selecionadas estão corretas
         - Entre em contato com o suporte se o problema persistir
+        """)
+
+
+# FUNÇÃO PARA A SEÇÃO DE INADIMPLENTES
+def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: List[str]):
+    """Renderiza seção de relatórios de inadimplentes"""
+
+    st.markdown("### ⚠️ Relatório de Alunos Inadimplentes")
+
+    # Alerta explicativo
+    st.warning("""
+    **📋 Sobre este relatório:**
+
+    Este relatório identifica alunos que **pagaram a taxa de matrícula** mas **NÃO pagaram a primeira mensalidade**.
+
+    - ✅ **Incluídos:** Alunos com status "Não pagou a primeira mensalidade"
+    - ❌ **Excluídos:** Cursos que "Não é um curso do Pincel" ou com datas de pagamento registradas
+    """)
+
+    # Verificar se há dados de inadimplentes
+    from data.fetch_data import get_inadimplentes_parceiro
+
+    with st.spinner("Verificando dados de inadimplência..."):
+        df_inadimplentes_base = get_inadimplentes_parceiro(parceiro_nome)
+
+    if df_inadimplentes_base is None:
+        st.error("""
+        ❌ **Não foi possível carregar dados de inadimplência.**
+
+        Possíveis causas:
+        - As colunas de primeira mensalidade não existem na planilha
+        - Não há dados para este parceiro
+        - Erro na conexão com a planilha
+        """)
+        return
+
+    if df_inadimplentes_base.empty:
+        st.success("""
+        🎉 **Excelente! Não há alunos inadimplentes.**
+
+        Todos os alunos que pagaram a taxa de matrícula também pagaram a primeira mensalidade.
+        """)
+        return
+
+    # Filtros para relatórios de inadimplentes
+    st.markdown("#### 🔍 Filtros do Relatório")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        anos_disponiveis = [2024, 2025]
+        ano_inadimplente = st.selectbox(
+            "📅 Ano:",
+            options=["Todos"] + anos_disponiveis,
+            index=2,  # 2025 por padrão
+            key="ano_inadimplente"
+        )
+
+    with col2:
+        meses = {
+            "Todos": None,
+            "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4,
+            "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8,
+            "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
+        }
+        mes_inadimplente = st.selectbox(
+            "📅 Mês:",
+            options=list(meses.keys()),
+            index=0,
+            key="mes_inadimplente"
+        )
+
+    with col3:
+        modalidades_inadimplentes = st.multiselect(
+            "🎯 Modalidades:",
+            options=["Todas"] + modalidades_disponiveis,
+            default=["Todas"],
+            help="Selecione modalidades específicas ou 'Todas'",
+            key="modalidades_inadimplentes"
+        )
+
+    # Preparar parâmetros
+    ano_param = None if ano_inadimplente == "Todos" else ano_inadimplente
+    mes_param = meses[mes_inadimplente]
+    modalidades_param = modalidades_inadimplentes if modalidades_inadimplentes else [
+        "Todas"]
+
+    # Buscar dados filtrados
+    with st.spinner("Carregando dados de inadimplentes..."):
+        from data.fetch_data import get_inadimplentes_filtrados
+        df_inadimplentes = get_inadimplentes_filtrados(
+            parceiro_nome, ano_param, mes_param, modalidades_param)
+
+    if df_inadimplentes is None or df_inadimplentes.empty:
+        st.info("ℹ️ Nenhum aluno inadimplente encontrado para os filtros selecionados.")
+        return
+
+    # Estatísticas dos inadimplentes
+    st.markdown("#### �� Estatísticas de Inadimplência")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "⚠️ Total de Inadimplentes",
+            len(df_inadimplentes),
+            help="Número total de alunos que não pagaram a primeira mensalidade"
+        )
+
+    with col2:
+        st.metric(
+            "📚 Matrículas Inadimplentes",
+            int(df_inadimplentes['Qtd. Matrículas'].sum()),
+            help="Soma total de matrículas inadimplentes"
+        )
+
+    with col3:
+        st.metric(
+            "🎯 Modalidades Afetadas",
+            df_inadimplentes['Nível'].nunique(),
+            help="Número de modalidades com inadimplência"
+        )
+
+    with col4:
+        st.metric(
+            "📖 Cursos Afetados",
+            df_inadimplentes['Curso'].nunique(),
+            help="Número de cursos com inadimplência"
+        )
+
+    # Análise por modalidade
+    st.markdown("####  Análise por Modalidade")
+
+    modalidades_inadimplentes_count = df_inadimplentes.groupby(
+        'Nível')['Qtd. Matrículas'].sum().reset_index()
+    modalidades_inadimplentes_count = modalidades_inadimplentes_count.sort_values(
+        'Qtd. Matrículas', ascending=False)
+    modalidades_inadimplentes_count.columns = ['Modalidade', 'Inadimplentes']
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.dataframe(
+            modalidades_inadimplentes_count,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Modalidade": st.column_config.TextColumn("Modalidade"),
+                "Inadimplentes": st.column_config.NumberColumn("Inadimplentes", format="%d")
+            }
+        )
+
+    with col2:
+        if len(modalidades_inadimplentes_count) > 0:
+            import plotly.express as px
+            fig = px.pie(
+                modalidades_inadimplentes_count,
+                values='Inadimplentes',
+                names='Modalidade',
+                title="Distribuição de Inadimplentes por Modalidade"
+            )
+            fig.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("#### 👀 Preview dos Alunos Inadimplentes")
+
+    # Preparar colunas para exibição
+    colunas_preview = ['Aluno', 'Nível', 'Curso',
+                       'IES', 'Dt Pagto', 'Qtd. Matrículas']
+    colunas_disponiveis = [
+        col for col in colunas_preview if col in df_inadimplentes.columns]
+
+    df_preview = df_inadimplentes[colunas_disponiveis].head(20).copy()
+
+    if 'Dt Pagto' in df_preview.columns:
+        df_preview['Dt Pagto'] = df_preview['Dt Pagto'].dt.strftime('%d/%m/%Y')
+
+    st.dataframe(
+        df_preview,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Aluno": st.column_config.TextColumn("Nome do Aluno"),
+            "Nível": st.column_config.TextColumn("Modalidade"),
+            "Curso": st.column_config.TextColumn("Curso"),
+            "IES": st.column_config.TextColumn("IES"),
+            "Dt Pagto": st.column_config.TextColumn("Data da Matrícula"),
+            "Qtd. Matrículas": st.column_config.NumberColumn("Qtd. Matrículas")
+        }
+    )
+
+    if len(df_inadimplentes) > 20:
+        st.info(
+            f"Mostrando apenas os primeiros 20 registros. Total: {len(df_inadimplentes)} inadimplentes.")
+
+    st.markdown("---")
+
+    # Botões de geração de relatórios
+    st.markdown("#### 📥 Gerar Relatório de Inadimplentes")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("##### 📊 Excel")
+        if st.button("📊 Gerar Excel Inadimplentes", key="excel_inadimplentes", use_container_width=True):
+            with st.spinner("Gerando relatório de inadimplentes Excel..."):
+                report_generator = ReportGenerator()
+                excel_data = report_generator.generate_inadimplentes_excel(
+                    parceiro_nome, ano_param, mes_param, modalidades_param
+                )
+
+                if excel_data:
+                    filename = f"inadimplentes_{parceiro_nome}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+                    st.download_button(
+                        label="⬇️ Baixar Excel Inadimplentes",
+                        data=excel_data,
+                        file_name=filename,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="download_excel_inadimplentes"
+                    )
+                    st.success(
+                        "✅ Relatório de inadimplentes Excel gerado com sucesso!")
+
+    with col2:
+        st.markdown("##### 📄 CSV")
+        if st.button("📄 Gerar CSV Inadimplentes", key="csv_inadimplentes", use_container_width=True):
+            with st.spinner("Gerando relatório de inadimplentes CSV..."):
+                report_generator = ReportGenerator()
+                csv_data = report_generator.generate_inadimplentes_csv(
+                    parceiro_nome, ano_param, mes_param, modalidades_param
+                )
+
+                if csv_data:
+                    filename = f"inadimplentes_{parceiro_nome}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+                    st.download_button(
+                        label="⬇️ Baixar CSV Inadimplentes",
+                        data=csv_data,
+                        file_name=filename,
+                        mime="text/csv",
+                        key="download_csv_inadimplentes"
+                    )
+                    st.success(
+                        "✅ Relatório de inadimplentes CSV gerado com sucesso!")
+
+    with col3:
+        st.markdown("##### 📑 PDF")
+        if st.button("📑 Gerar PDF Inadimplentes", key="pdf_inadimplentes", use_container_width=True):
+            with st.spinner("Gerando relatório de inadimplentes PDF..."):
+                report_generator = ReportGenerator()
+                pdf_data = report_generator.generate_inadimplentes_pdf(
+                    parceiro_nome, ano_param, mes_param, modalidades_param
+                )
+
+                if pdf_data:
+                    filename = f"inadimplentes_{parceiro_nome}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+                    st.download_button(
+                        label="⬇️ Baixar PDF Inadimplentes",
+                        data=pdf_data,
+                        file_name=filename,
+                        mime="application/pdf",
+                        key="download_pdf_inadimplentes"
+                    )
+                    st.success(
+                        "✅ Relatório de inadimplentes PDF gerado com sucesso!")
+
+    # Informações adicionais
+    st.markdown("---")
+    st.markdown("#### ℹ️ Informações do Relatório de Inadimplentes")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.info("""
+        **⚠️ O que são inadimplentes:**
+        - Alunos que pagaram a taxa de matrícula
+        - Mas NÃO pagaram a primeira mensalidade
+        - Status: "Não pagou a primeira mensalidade"
+        - Excluídos cursos "Não é um curso do Pincel"
+        """)
+
+    with col2:
+        st.info("""
+        **📋 Dados incluídos no relatório:**
+        - Nome completo do aluno
+        - Modalidade e curso
+        - IES (Instituição de Ensino)
+        - Data de pagamento da matrícula
+        - Status da primeira mensalidade
+        - Quantidade de matrículas
+        """)
+
+    # Dicas de uso
+    with st.expander("💡 Dicas para Gestão de Inadimplência"):
+        st.markdown("""
+        **📞 Ações Recomendadas:**
+
+        1. **Contato Imediato:**
+           - Entre em contato com os alunos inadimplentes
+           - Ofereça opções de pagamento facilitado
+           - Esclareça dúvidas sobre o curso
+
+        2. **Análise de Padrões:**
+           - Identifique modalidades com maior inadimplência
+           - Verifique se há problemas específicos por curso
+           - Analise se há concentração em determinados períodos
+
+        3. **Prevenção:**
+           - Melhore a comunicação sobre prazos de pagamento
+           - Envie lembretes antes do vencimento
+           - Ofereça orientação financeira aos alunos
+
+        4. **Monitoramento:**
+           - Gere relatórios mensais de inadimplência
+           - Acompanhe a evolução dos números
+           - Defina metas de redução de inadimplência
         """)

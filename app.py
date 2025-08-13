@@ -65,12 +65,10 @@ st.markdown("""
 
 
 def main():
-    # Inicializar gerenciador de autenticação
     auth_manager = AuthManager()
 
     # Verificar se o usuário está autenticado
     if not auth_manager.is_authenticated():
-        # Mostrar tela de login
         auth_manager.login_form()
     else:
         # Usuário autenticado - mostrar dashboard
@@ -88,7 +86,6 @@ def main():
         menu_options = ["📊 Meu Dashboard", "📋 Relatórios e Metas", "🌍 Dashboard Público"]
         selected_page = st.sidebar.selectbox("📋 Navegação", menu_options)
 
-        # Botão de logout
         auth_manager.render_logout_button()
 
         # Renderizar página selecionada

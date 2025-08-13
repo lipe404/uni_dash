@@ -49,7 +49,7 @@ GOOGLE_SHEETS_CONFIG = {
         'API_KEY': get_env_var('GOOGLE_SHEETS_ALUNOS_API_KEY'),
         'SHEET_ID': get_env_var('GOOGLE_SHEETS_ALUNOS_SHEET_ID'),
         'abas': {
-            'alunos': 'Sheet1'  # Ajuste conforme necessário
+            'alunos': 'Sheet1'
         }
     }
 }

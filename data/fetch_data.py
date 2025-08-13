@@ -28,8 +28,26 @@ def fetch_google_sheet_data(
                 headers = values[0]
                 rows = values[1:]
 
-                # Criar DataFrame
-                df = pd.DataFrame(rows, columns=headers)
+                # Verificar se todas as linhas têm o mesmo número de colunas
+                max_cols = len(headers)
+
+                # Normalizar todas as linhas para ter o mesmo número de colunas
+                normalized_rows = []
+                for row in rows:
+                    # Se a linha tem menos colunas que o cabeçalho, preencher com strings vazias
+                    if len(row) < max_cols:
+                        row.extend([''] * (max_cols - len(row)))
+                    # Se a linha tem mais colunas que o cabeçalho, truncar
+                    elif len(row) > max_cols:
+                        row = row[:max_cols]
+                    normalized_rows.append(row)
+
+                # Criar DataFrame com linhas normalizadas
+                df = pd.DataFrame(normalized_rows, columns=headers)
+
+                # Remover linhas completamente vazias
+                df = df.dropna(how='all')
+
                 return df
             else:
                 st.warning(f"Nenhum dado encontrado na aba: {range_name}")
@@ -129,7 +147,6 @@ def get_parceiro_vendas_detalhadas(
                                         == parceiro_nome].copy()
 
             if not vendas_parceiro.empty:
-                # Processar dados de data
                 if 'Dt Pagto' in vendas_parceiro.columns:
                     vendas_parceiro['Dt Pagto'] = pd.to_datetime(
                         vendas_parceiro['Dt Pagto'],
@@ -216,7 +233,6 @@ def get_modalidades_parceiro_filtradas(
         df_vendas = get_parceiro_vendas_detalhadas(parceiro_nome)
 
         if df_vendas is not None and not df_vendas.empty:
-            # Aplicar filtros de data
             df_filtrado = df_vendas.copy()
 
             if ano:
@@ -230,7 +246,6 @@ def get_modalidades_parceiro_filtradas(
             if df_filtrado.empty:
                 return None
 
-            # Contar modalidades considerando quantidade de matrículas
             modalidades = {}
             for _, row in df_filtrado.iterrows():
                 nivel = row.get('Nível', 'Não informado')
@@ -241,7 +256,7 @@ def get_modalidades_parceiro_filtradas(
             modalidades_ordenadas = dict(
                 sorted(
                     modalidades.items(), key=lambda x: x[1], reverse=True
-                    )[:10])
+                )[:10])
 
             return modalidades_ordenadas
 
@@ -255,8 +270,8 @@ def get_modalidades_parceiro_filtradas(
 def get_cursos_parceiro_filtrados(
         parceiro_nome: str, ano: int = None,
         mes: int = None, modalidade: str = None
-        ) -> Optional[
-            Dict[str, int]]:
+) -> Optional[
+        Dict[str, int]]:
     """
     Retorna cursos mais vendidos do parceiro com filtros de data e modalidade
     """
@@ -334,7 +349,7 @@ def get_lista_modalidades_parceiro(parceiro_nome: str) -> List[str]:
 
 def get_estatisticas_parceiro(
         parceiro_nome: str, ano: int = None, mes: int = None
-        ) -> Optional[Dict[str, Any]]:
+) -> Optional[Dict[str, Any]]:
     """
     Retorna estatísticas gerais do parceiro
     """
@@ -418,7 +433,7 @@ def get_modalidades_parceiro(parceiro_nome: str) -> Optional[Dict[str, int]]:
             modalidades_ordenadas = dict(
                 sorted(
                     modalidades.items(), key=lambda x: x[1], reverse=True
-                    )[:10])
+                )[:10])
 
             return modalidades_ordenadas
 
@@ -474,7 +489,7 @@ def get_cursos_parceiro(parceiro_nome: str) -> Optional[Dict[str, int]]:
 def get_estatisticas_parceiro_filtradas(
         parceiro_nome: str,
         ano: int = None, mes: int = None, modalidade: str = None
-        ) -> Optional[Dict[str, Any]]:
+) -> Optional[Dict[str, Any]]:
     """
     Retorna estatísticas gerais do parceiro com filtro de modalidade
     """
@@ -895,4 +910,87 @@ def get_evolucao_modalidades_mensal(
 
     except Exception as e:
         st.error(f"Erro ao calcular evolução mensal das modalidades: {str(e)}")
+        return None
+
+
+def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
+    """
+    Retorna dados de alunos inadimplentes (que pagaram taxa de matrícula mas não pagaram primeira mensalidade)
+    """
+    try:
+        df_vendas = fetch_vendas_publicas()
+
+        if df_vendas is not None and not df_vendas.empty:
+            # Filtrar vendas do parceiro específico
+            vendas_parceiro = df_vendas[df_vendas['Parceiro']
+                                        == parceiro_nome].copy()
+
+            if not vendas_parceiro.empty:
+                # Verificar se as colunas de primeira mensalidade existem
+                if 'Primeira Mensalidade Dt. Pagto' in vendas_parceiro.columns and 'Pimeira Mensalidade Valor. Pagto' in vendas_parceiro.columns:
+
+                    # Filtrar apenas alunos que não pagaram a primeira mensalidade
+                    inadimplentes = vendas_parceiro[
+                        (vendas_parceiro['Primeira Mensalidade Dt. Pagto'] == 'Não pagou a primeira mensalidade.') |
+                        (vendas_parceiro['Pimeira Mensalidade Valor. Pagto']
+                         == 'Não pagou a primeira mensalidade.')
+                    ].copy()
+
+                    if not inadimplentes.empty:
+                        # Processar dados de data de pagamento da matrícula
+                        if 'Dt Pagto' in inadimplentes.columns:
+                            inadimplentes['Dt Pagto'] = pd.to_datetime(
+                                inadimplentes['Dt Pagto'],
+                                format='%d/%m/%Y',
+                                errors='coerce'
+                            )
+
+                        # Processar quantidade de matrículas
+                        if 'Qtd. Matrículas' in inadimplentes.columns:
+                            inadimplentes['Qtd. Matrículas'] = pd.to_numeric(
+                                inadimplentes['Qtd. Matrículas'],
+                                errors='coerce'
+                            ).fillna(1)
+                        else:
+                            inadimplentes['Qtd. Matrículas'] = 1
+
+                        return inadimplentes
+                else:
+                    st.warning(
+                        "As colunas de primeira mensalidade não foram encontradas na planilha.")
+                    return None
+
+        return None
+
+    except Exception as e:
+        st.error(f"Erro ao buscar dados de inadimplentes: {str(e)}")
+        return None
+
+
+def get_inadimplentes_filtrados(parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> Optional[pd.DataFrame]:
+    """
+    Retorna dados de inadimplentes com filtros aplicados
+    """
+    try:
+        df_inadimplentes = get_inadimplentes_parceiro(parceiro_nome)
+
+        if df_inadimplentes is None or df_inadimplentes.empty:
+            return None
+
+        # Aplicar filtros
+        df_filtrado = df_inadimplentes.copy()
+
+        if ano:
+            df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+
+        if mes:
+            df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+
+        if modalidades and "Todas" not in modalidades:
+            df_filtrado = df_filtrado[df_filtrado['Nível'].isin(modalidades)]
+
+        return df_filtrado if not df_filtrado.empty else None
+
+    except Exception as e:
+        st.error(f"Erro ao filtrar dados de inadimplentes: {str(e)}")
         return None
