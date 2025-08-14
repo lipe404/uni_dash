@@ -6,7 +6,8 @@ from .partner_data import get_parceiro_vendas_detalhadas
 
 
 def get_evolucao_matriculas_parceiro(
-        parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+        parceiro_nome: str, ano: int = None,
+        mes: int = None) -> Optional[Dict[str, Any]]:
     """
     Retorna evolução de matrículas do parceiro por período.
     Agora sempre mostra dados diários para o mês selecionado.

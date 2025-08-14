@@ -815,9 +815,13 @@ def create_projection_summary_cards(projecoes: Dict, targets: Dict):
     with col2:
         crescimento = 0
         if projecoes['vendas_acumuladas_atual'] > 0:
-            projecao_final = projecoes['projecoes_acumuladas'][-1] if projecoes['projecoes_acumuladas'] else 0
+            projecao_final = projecoes[
+                'projecoes_acumuladas'][-1] if projecoes[
+                    'projecoes_acumuladas'] else 0
             crescimento = (
-                (projecao_final - projecoes['vendas_acumuladas_atual']) / projecoes['vendas_acumuladas_atual']) * 100
+                (projecao_final - projecoes[
+                    'vendas_acumuladas_atual']) / projecoes[
+                        'vendas_acumuladas_atual']) * 100
 
         st.metric(
             label="📈 Crescimento Projetado",

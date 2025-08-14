@@ -31,10 +31,12 @@ class ReportGenerator:
 
         # Tentar converter para float
         try:
-            # Remover caracteres não numéricos exceto vírgula, ponto e parênteses
+            # Remover caracteres não numéricos
+            # exceto vírgula, ponto e parênteses
             clean_value = value_str.replace('R\$', '').replace(' ', '')
 
-            # Tratar casos especiais como "200(2)" - pegar apenas o primeiro número
+            # Tratar casos especiais como "200(2)"
+            # - pegar apenas o primeiro número
             if '(' in clean_value:
                 clean_value = clean_value.split('(')[0]
 
@@ -49,13 +51,17 @@ class ReportGenerator:
             numeric_value = float(clean_value)
 
             # Formatar como moeda brasileira
-            return f"R\$ {numeric_value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            return f"R\$ {numeric_value:,.2f}".replace(
+                ',', 'X').replace('.', ',').replace('X', '.')
 
         except (ValueError, AttributeError):
             # Se não conseguir converter, retornar como string original com R\$
             return f"R\$ {value_str}"
 
-    def get_filtered_sales_data(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> pd.DataFrame:
+    def get_filtered_sales_data(
+            self, parceiro_nome: str,
+            ano: int = None,
+            mes: int = None, modalidades: List[str] = None) -> pd.DataFrame:
         """Busca dados de vendas filtrados"""
         try:
             df_vendas = get_parceiro_vendas_detalhadas(parceiro_nome)
@@ -67,10 +73,12 @@ class ReportGenerator:
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[
+                    df_filtrado['Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[
+                    df_filtrado['Dt Pagto'].dt.month == mes]
 
             if modalidades and "Todas" not in modalidades:
                 df_filtrado = df_filtrado[df_filtrado['Nível'].isin(
@@ -119,7 +127,10 @@ class ReportGenerator:
 
         return total
 
-    def generate_summary_report_excel(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> bytes:
+    def generate_summary_report_excel(
+            self, parceiro_nome: str,
+            ano: int = None,
+            mes: int = None, modalidades: List[str] = None) -> bytes:
         """Gera relatório resumido em Excel"""
         try:
             df_vendas = self.get_filtered_sales_data(
@@ -166,7 +177,8 @@ class ReportGenerator:
                         df_vendas['Curso'].nunique(),
                         df_vendas['IES'].nunique(
                         ) if 'IES' in df_vendas.columns else 0,
-                        f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}"
+                        f"{ano if ano else 'Todos os anos'} - {
+                            mes if mes else 'Todos os meses'}"
                     ]
                 }
 
@@ -196,8 +208,10 @@ class ReportGenerator:
                             self.format_currency_value(valor_mod))
                     modalidades_count['Valor Total'] = valores_modalidade
 
-                modalidades_count.columns = ['Modalidade', 'Total de Matrículas'] + (
-                    ['Valor Total'] if 'Valor Pagto' in df_vendas.columns else [])
+                modalidades_count.columns = [
+                    'Modalidade', 'Total de Matrículas'] + (
+                    ['Valor Total'
+                     ] if 'Valor Pagto' in df_vendas.columns else [])
                 modalidades_count.to_excel(
                     writer, sheet_name='Por Modalidade', index=False)
 
@@ -225,7 +239,8 @@ class ReportGenerator:
                     cursos_count['Valor Total'] = valores_curso
 
                 cursos_count.columns = ['Curso', 'Total de Matrículas'] + \
-                    (['Valor Total'] if 'Valor Pagto' in df_vendas.columns else [])
+                    (['Valor Total'
+                      ] if 'Valor Pagto' in df_vendas.columns else [])
                 cursos_count.to_excel(
                     writer, sheet_name='Por Curso', index=False)
 
@@ -254,7 +269,8 @@ class ReportGenerator:
                         ies_count['Valor Total'] = valores_ies
 
                     ies_count.columns = ['IES', 'Total de Matrículas'] + (
-                        ['Valor Total'] if 'Valor Pagto' in df_vendas.columns else [])
+                        ['Valor Total'
+                         ] if 'Valor Pagto' in df_vendas.columns else [])
                     ies_count.to_excel(
                         writer, sheet_name='Por IES', index=False)
 
@@ -272,9 +288,12 @@ class ReportGenerator:
                     }).reset_index()
 
                     meses_nomes = {
-                        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-                        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-                        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+                        1: "Janeiro", 2: "Fevereiro",
+                        3: "Março", 4: "Abril",
+                        5: "Maio", 6: "Junho",
+                        7: "Julho", 8: "Agosto",
+                        9: "Setembro", 10: "Outubro",
+                        11: "Novembro", 12: "Dezembro"
                     }
 
                     vendas_mensais['Nome do Mês'] = vendas_mensais['Mês'].map(
@@ -290,10 +309,13 @@ class ReportGenerator:
                                 self.format_currency_value(valor_mes))
                         vendas_mensais['Valor Total'] = valores_mes
 
-                    vendas_mensais = vendas_mensais[['Nome do Mês', 'Qtd. Matrículas'] + (
-                        ['Valor Total'] if 'Valor Pagto' in df_vendas.columns else [])]
+                    vendas_mensais = vendas_mensais[[
+                        'Nome do Mês', 'Qtd. Matrículas'] + (
+                        ['Valor Total'
+                         ] if 'Valor Pagto' in df_vendas.columns else [])]
                     vendas_mensais.columns = ['Mês', 'Total de Matrículas'] + (
-                        ['Valor Total'] if 'Valor Pagto' in df_vendas.columns else [])
+                        ['Valor Total'
+                         ] if 'Valor Pagto' in df_vendas.columns else [])
                     vendas_mensais.to_excel(
                         writer, sheet_name='Por Mês', index=False)
 
@@ -309,7 +331,10 @@ class ReportGenerator:
             st.error(f"Erro ao gerar relatório Excel: {str(e)}")
             return b""
 
-    def generate_detailed_report_excel(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> bytes:
+    def generate_detailed_report_excel(
+            self, parceiro_nome: str,
+            ano: int = None,
+            mes: int = None, modalidades: List[str] = None) -> bytes:
         """Gera relatório detalhado em Excel"""
         try:
             df_vendas = self.get_filtered_sales_data(
@@ -323,8 +348,10 @@ class ReportGenerator:
             output = io.BytesIO()
 
             # Preparar dados para exportação com as novas colunas
-            colunas_export = ['Parceiro', 'Aluno', 'Nível', 'Curso',
-                              'IES', 'Dt Pagto', 'Qtd. Matrículas', 'Valor Pagto']
+            colunas_export = ['Parceiro', 'Aluno',
+                              'Nível', 'Curso',
+                              'IES', 'Dt Pagto',
+                              'Qtd. Matrículas', 'Valor Pagto']
 
             # Verificar quais colunas existem no DataFrame
             colunas_disponiveis = [
@@ -386,9 +413,11 @@ class ReportGenerator:
                         int(df_export['Qtd. Matrículas'].sum(
                         )) if 'Qtd. Matrículas' in df_export.columns else 0,
                         self.format_currency_value(valor_total),
-                        f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}",
+                        f"{ano if ano else 'Todos os anos'} - {
+                            mes if mes else 'Todos os meses'}",
                         ', '.join(
-                            modalidades) if modalidades and "Todas" not in modalidades else "Todas",
+                            modalidades
+                            ) if modalidades and "Todas" not in modalidades else "Todas",
                         datetime.now().strftime('%d/%m/%Y %H:%M')
                     ]
                 }
@@ -407,7 +436,11 @@ class ReportGenerator:
             st.error(f"Erro ao gerar relatório detalhado Excel: {str(e)}")
             return b""
 
-    def generate_csv_report(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None, detailed: bool = False) -> bytes:
+    def generate_csv_report(
+            self, parceiro_nome: str,
+            ano: int = None,
+            mes: int = None, modalidades: List[
+                str] = None, detailed: bool = False) -> bytes:
         """Gera relatório em CSV"""
         try:
             df_vendas = self.get_filtered_sales_data(
@@ -418,8 +451,10 @@ class ReportGenerator:
 
             if detailed:
                 # Relatório detalhado com as novas colunas
-                colunas_export = ['Parceiro', 'Aluno', 'Nível', 'Curso',
-                                  'IES', 'Dt Pagto', 'Qtd. Matrículas', 'Valor Pagto']
+                colunas_export = ['Parceiro', 'Aluno',
+                                  'Nível', 'Curso',
+                                  'IES', 'Dt Pagto',
+                                  'Qtd. Matrículas', 'Valor Pagto']
                 colunas_disponiveis = [
                     col for col in colunas_export if col in df_vendas.columns]
 
@@ -447,7 +482,11 @@ class ReportGenerator:
             st.error(f"Erro ao gerar CSV: {str(e)}")
             return b""
 
-    def generate_pdf_report(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None, detailed: bool = False) -> bytes:
+    def generate_pdf_report(
+            self, parceiro_nome: str,
+            ano: int = None,
+            mes: int = None, modalidades: List[
+                str] = None, detailed: bool = False) -> bytes:
         """Gera relatório em PDF"""
         try:
             df_vendas = self.get_filtered_sales_data(
@@ -472,7 +511,8 @@ class ReportGenerator:
             )
 
             story.append(
-                Paragraph(f"Relatório de Vendas - {parceiro_nome}", title_style))
+                Paragraph(f"Relatório de Vendas - {
+                    parceiro_nome}", title_style))
             story.append(Spacer(1, 20))
 
             # Calcular valor total
@@ -481,10 +521,14 @@ class ReportGenerator:
             # Informações do relatório
             info_data = [
                 ['Período:',
-                    f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}"],
+                    f"{ano if ano else 'Todos os anos'} - {
+                        mes if mes else 'Todos os meses'}"],
                 ['Modalidades:', ', '.join(
-                    modalidades) if modalidades and "Todas" not in modalidades else "Todas"],
-                ['Data de Geração:', datetime.now().strftime('%d/%m/%Y %H:%M')],
+                    modalidades
+                    ) if modalidades and "Todas" not in modalidades else "Todas"
+                 ],
+                ['Data de Geração:', datetime.now().strftime(
+                    '%d/%m/%Y %H:%M')],
                 ['Total de Vendas:', str(len(df_vendas))],
                 ['Total de Matrículas:', str(
                     int(df_vendas['Qtd. Matrículas'].sum()))],
@@ -509,7 +553,10 @@ class ReportGenerator:
             if detailed:
                 # Tabela detalhada (limitada a primeiras 30 linhas)
                 story.append(
-                    Paragraph("Detalhamento das Vendas (Primeiras 30 linhas)", styles['Heading2']))
+                    Paragraph(
+                        "Detalhamento das Vendas (Primeiras 30 linhas)",
+                        styles[
+                            'Heading2']))
                 story.append(Spacer(1, 10))
 
                 df_limited = df_vendas.head(30)
@@ -523,19 +570,24 @@ class ReportGenerator:
                         '...' if len(str(row['Aluno'])) > 15 else str(
                             row['Aluno']),
                         str(row['Nível'])[
-                            :15] + '...' if len(str(row['Nível'])) > 15 else str(row['Nível']),
+                            :15] + '...' if len(str(row[
+                                'Nível'])) > 15 else str(row['Nível']),
                         row['Curso'][:20] +
                         '...' if len(str(row['Curso'])) > 20 else str(
                             row['Curso']),
                         row['IES'][:15] + '...' if 'IES' in row and len(
-                            str(row['IES'])) > 15 else str(row.get('IES', 'N/A')),
+                            str(row['IES'])) > 15 else str(
+                                row.get('IES', 'N/A')),
                         row['Dt Pagto'].strftime('%d/%m/%Y'),
                         valor_formatado[:10] +
                         '...' if len(valor_formatado) > 10 else valor_formatado
                     ])
 
                 table = Table(data, colWidths=[
-                              1*inch, 0.8*inch, 1.2*inch, 0.8*inch, 0.7*inch, 0.8*inch])
+                              1*inch, 0.8*inch,
+                              1.2*inch, 0.8*inch,
+                              0.7*inch, 0.8*inch
+                              ])
 
             else:
                 # Tabela resumida por modalidade
@@ -575,7 +627,11 @@ class ReportGenerator:
             st.error(f"Erro ao gerar PDF: {str(e)}")
             return b""
 
-    def get_inadimplentes_data(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> pd.DataFrame:
+    def get_inadimplentes_data(
+            self, parceiro_nome: str,
+            ano: int = None,
+            mes: int = None,
+            modalidades: List[str] = None) -> pd.DataFrame:
         """Busca dados de inadimplentes filtrados"""
         try:
             from data.fetch_data import get_inadimplentes_filtrados
@@ -591,7 +647,10 @@ class ReportGenerator:
             st.error(f"Erro ao buscar dados de inadimplentes: {str(e)}")
             return pd.DataFrame()
 
-    def generate_inadimplentes_excel(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> bytes:
+    def generate_inadimplentes_excel(
+            self, parceiro_nome: str,
+            ano: int = None, mes: int = None,
+            modalidades: List[str] = None) -> bytes:
         """Gera relatório de inadimplentes em Excel"""
         try:
             df_inadimplentes = self.get_inadimplentes_data(
@@ -599,7 +658,8 @@ class ReportGenerator:
 
             if df_inadimplentes.empty:
                 st.warning(
-                    "Nenhum aluno inadimplente encontrado para os filtros selecionados.")
+                    "Nenhum aluno inadimplente encontrado para os filtros selecionados."
+                    )
                 return b""
 
             output = io.BytesIO()
@@ -612,7 +672,7 @@ class ReportGenerator:
                     'bold': True,
                     'text_wrap': True,
                     'valign': 'top',
-                    'fg_color': '#dc3545',  # Vermelho para indicar inadimplência
+                    'fg_color': '#dc3545',
                     'font_color': 'white',
                     'border': 1
                 })
@@ -625,13 +685,17 @@ class ReportGenerator:
 
                 # Preparar dados para exportação
                 colunas_export = [
-                    'Parceiro', 'Aluno', 'Nível', 'Curso', 'IES',
-                    'Dt Pagto', 'Qtd. Matrículas', 'Valor Pagto',
-                    'Primeira Mensalidade Dt. Pagto', 'Pimeira Mensalidade Valor. Pagto'
+                    'Parceiro', 'Aluno', 'Nível',
+                    'Curso', 'IES',
+                    'Dt Pagto', 'Qtd. Matrículas',
+                    'Valor Pagto',
+                    'Primeira Mensalidade Dt. Pagto',
+                    'Pimeira Mensalidade Valor. Pagto'
                 ]
 
                 colunas_disponiveis = [
-                    col for col in colunas_export if col in df_inadimplentes.columns]
+                    col for col in colunas_export if col in df_inadimplentes.columns
+                    ]
                 df_export = df_inadimplentes[colunas_disponiveis].copy()
 
                 # Formatar data
@@ -692,7 +756,8 @@ class ReportGenerator:
                         ) if 'Nível' in df_export.columns else 0,
                         df_export['Curso'].nunique(
                         ) if 'Curso' in df_export.columns else 0,
-                        f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}",
+                        f"{ano if ano else 'Todos os anos'} - {
+                            mes if mes else 'Todos os meses'}",
                         datetime.now().strftime('%d/%m/%Y %H:%M'),
                         'ALUNOS QUE PAGARAM MATRÍCULA MAS NÃO PAGARAM 1ª MENSALIDADE'
                     ]
@@ -732,7 +797,10 @@ class ReportGenerator:
                 f"Erro ao gerar relatório de inadimplentes Excel: {str(e)}")
             return b""
 
-    def generate_inadimplentes_csv(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> bytes:
+    def generate_inadimplentes_csv(
+            self, parceiro_nome: str,
+            ano: int = None, mes: int = None,
+            modalidades: List[str] = None) -> bytes:
         """Gera relatório de inadimplentes em CSV"""
         try:
             df_inadimplentes = self.get_inadimplentes_data(
@@ -745,7 +813,8 @@ class ReportGenerator:
             colunas_export = [
                 'Parceiro', 'Aluno', 'Nível', 'Curso', 'IES',
                 'Dt Pagto', 'Qtd. Matrículas', 'Valor Pagto',
-                'Primeira Mensalidade Dt. Pagto', 'Pimeira Mensalidade Valor. Pagto'
+                'Primeira Mensalidade Dt. Pagto',
+                'Pimeira Mensalidade Valor. Pagto'
             ]
 
             colunas_disponiveis = [
@@ -771,7 +840,10 @@ class ReportGenerator:
             st.error(f"Erro ao gerar CSV de inadimplentes: {str(e)}")
             return b""
 
-    def generate_inadimplentes_pdf(self, parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> bytes:
+    def generate_inadimplentes_pdf(
+            self, parceiro_nome: str,
+            ano: int = None, mes: int = None,
+            modalidades: List[str] = None) -> bytes:
         """Gera relatório de inadimplentes em PDF"""
         try:
             df_inadimplentes = self.get_inadimplentes_data(
@@ -797,20 +869,24 @@ class ReportGenerator:
             )
 
             story.append(
-                Paragraph(f"Relatório de Inadimplentes - {parceiro_nome}", title_style))
+                Paragraph(f"Relatório de Inadimplentes - {
+                    parceiro_nome}", title_style))
             story.append(Spacer(1, 20))
 
             # Informações do relatório
             info_data = [
                 ['Período:',
-                    f"{ano if ano else 'Todos os anos'} - {mes if mes else 'Todos os meses'}"],
+                    f"{ano if ano else 'Todos os anos'} - {
+                        mes if mes else 'Todos os meses'}"],
                 ['Modalidades:', ', '.join(
                     modalidades) if modalidades and "Todas" not in modalidades else "Todas"],
-                ['Data de Geração:', datetime.now().strftime('%d/%m/%Y %H:%M')],
+                ['Data de Geração:', datetime.now().strftime(
+                    '%d/%m/%Y %H:%M')],
                 ['Total de Inadimplentes:', str(len(df_inadimplentes))],
                 ['Total de Matrículas:', str(
                     int(df_inadimplentes['Qtd. Matrículas'].sum()))],
-                ['Status:', 'ALUNOS QUE PAGARAM MATRÍCULA MAS NÃO PAGARAM 1ª MENSALIDADE']
+                ['Status:',
+                 'ALUNOS QUE PAGARAM MATRÍCULA MAS NÃO PAGARAM 1ª MENSALIDADE']
             ]
 
             info_table = Table(info_data, colWidths=[2*inch, 3*inch])
@@ -830,7 +906,8 @@ class ReportGenerator:
 
             # Tabela de inadimplentes (limitada a primeiras 30 linhas)
             story.append(
-                Paragraph("Alunos Inadimplentes (Primeiras 30 linhas)", styles['Heading2']))
+                Paragraph("Alunos Inadimplentes (Primeiras 30 linhas)", styles[
+                    'Heading2']))
             story.append(Spacer(1, 10))
 
             df_limited = df_inadimplentes.head(30)
@@ -842,7 +919,8 @@ class ReportGenerator:
                     '...' if len(str(row['Aluno'])) > 20 else str(
                         row['Aluno']),
                     str(row['Nível'])[:15] + '...' if len(str(row['Nível'])
-                                                          ) > 15 else str(row['Nível']),
+                                                          ) > 15 else str(row[
+                                                              'Nível']),
                     row['Curso'][:25] +
                     '...' if len(str(row['Curso'])) > 25 else str(
                         row['Curso']),

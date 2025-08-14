@@ -8,7 +8,7 @@ from .sheets_api import fetch_vendas_publicas
 
 def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
     """
-    Retorna dados de alunos inadimplentes (que pagaram taxa de matrícula mas não pagaram primeira mensalidade)
+    Retorna dados de alunos inadimplentes
     """
     try:
         df_vendas = fetch_vendas_publicas()
@@ -19,7 +19,7 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
                                         == parceiro_nome].copy()
 
             if not vendas_parceiro.empty:
-                # Buscar colunas de primeira mensalidade com diferentes variações de nome
+                # Buscar colunas de primeira mensalidade
                 colunas_primeira_mensalidade_dt = [
                     'Primeira Mensalidade Dt. Pagto',
                     'Primeira Mensalidade\nDt. Pagto',
@@ -48,10 +48,11 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
                         col_valor_encontrada = col
                         break
 
-                # Se não encontrou as colunas exatas, tentar busca por substring
+                # Se não encontrou as colunas, tentar busca por substring
                 if not col_dt_encontrada:
                     for col in vendas_parceiro.columns:
-                        if 'primeira mensalidade' in col.lower() and ('dt' in col.lower() or 'data' in col.lower()):
+                        if 'primeira mensalidade' in col.lower() and (
+                                'dt' in col.lower() or 'data' in col.lower()):
                             col_dt_encontrada = col
                             break
 
@@ -64,7 +65,9 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
                 if col_dt_encontrada and col_valor_encontrada:
                     # Filtrar apenas alunos que não pagaram a primeira mensalidade
                     inadimplentes = vendas_parceiro[
-                        (vendas_parceiro[col_dt_encontrada] == 'Não pagou a primeira mensalidade.') |
+                        (vendas_parceiro[
+                            col_dt_encontrada
+                            ] == 'Não pagou a primeira mensalidade.') |
                         (vendas_parceiro[col_valor_encontrada]
                          == 'Não pagou a primeira mensalidade.')
                     ].copy()
@@ -87,7 +90,7 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
                         else:
                             inadimplentes['Qtd. Matrículas'] = 1
 
-                        # Padronizar nomes das colunas para facilitar o uso posterior
+                        # Padronizar nomes das colunas para facilitar o uso
                         inadimplentes = inadimplentes.rename(columns={
                             col_dt_encontrada: 'Primeira Mensalidade Dt. Pagto',
                             col_valor_encontrada: 'Primeira Mensalidade Valor. Pagto'
@@ -96,10 +99,10 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
                         return inadimplentes
                     else:
                         st.info(
-                            "Nenhum aluno inadimplente encontrado para este parceiro.")
+                            "Nenhum aluno inadimplente encontrado.")
                         return pd.DataFrame()
                 else:
-                    # Mostrar quais colunas estão disponíveis que contêm "primeira mensalidade"
+                    # Mostrar colunas que contêm "primeira mensalidade"
                     colunas_relacionadas = [
                         col for col in vendas_parceiro.columns if 'primeira mensalidade' in col.lower()]
                     if colunas_relacionadas:
@@ -124,7 +127,10 @@ def get_inadimplentes_parceiro(parceiro_nome: str) -> Optional[pd.DataFrame]:
         return None
 
 
-def get_inadimplentes_filtrados(parceiro_nome: str, ano: int = None, mes: int = None, modalidades: List[str] = None) -> Optional[pd.DataFrame]:
+def get_inadimplentes_filtrados(
+        parceiro_nome: str, ano: int = None,
+        mes: int = None,
+        modalidades: List[str] = None) -> Optional[pd.DataFrame]:
     """
     Retorna dados de inadimplentes com filtros aplicados
     Modalidades permitidas: Graduação, Segunda Graduação, Tecnólogo

@@ -25,7 +25,8 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
             # Remove valores que são apenas "-", "N/A", "null", etc.
             valores_invalidos = ['-', 'n/a', 'null', 'none', '']
             df_filtrado = df_filtrado[
-                ~df_filtrado['Nível'].str.lower().str.strip().isin(valores_invalidos) &
+                ~df_filtrado['Nível'].str.lower().str.strip().isin(
+                    valores_invalidos) &
                 ~df_filtrado['Curso'].str.lower(
                 ).str.strip().isin(valores_invalidos)
             ]
@@ -69,9 +70,11 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
 
             # Ordenar e pegar top 10
             modalidades_ordenadas = dict(
-                sorted(modalidades_count.items(), key=lambda x: x[1], reverse=True))
+                sorted(modalidades_count.items(),
+                       key=lambda x: x[1], reverse=True))
             cursos_ordenados = dict(
-                sorted(cursos_count.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(cursos_count.items(),
+                       key=lambda x: x[1], reverse=True)[:10])
 
             # Calcular total de matrículas (não número de linhas)
             total_matriculas = df_filtrado['Qtd. Matrículas'].sum()
@@ -90,7 +93,8 @@ def get_dados_publicos_processados() -> Optional[Dict[str, Any]]:
         return None
 
 
-def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+def get_dados_publicos_filtrados(
+        ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
     """
     Processa dados públicos com filtros de ano e mês
     """
@@ -109,10 +113,12 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if df_filtrado.empty:
                 return None
@@ -127,7 +133,8 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
             # Remove valores inválidos
             valores_invalidos = ['-', 'n/a', 'null', 'none', '']
             df_filtrado = df_filtrado[
-                ~df_filtrado['Nível'].str.lower().str.strip().isin(valores_invalidos) &
+                ~df_filtrado['Nível'].str.lower().str.strip().isin(
+                    valores_invalidos) &
                 ~df_filtrado['Curso'].str.lower(
                 ).str.strip().isin(valores_invalidos)
             ]
@@ -170,9 +177,11 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
 
             # Ordenar
             modalidades_ordenadas = dict(
-                sorted(modalidades_count.items(), key=lambda x: x[1], reverse=True))
+                sorted(modalidades_count.items(),
+                       key=lambda x: x[1], reverse=True))
             cursos_ordenados = dict(
-                sorted(cursos_count.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(cursos_count.items(),
+                       key=lambda x: x[1], reverse=True)[:10])
 
             total_matriculas = df_filtrado['Qtd. Matrículas'].sum()
 
@@ -190,7 +199,8 @@ def get_dados_publicos_filtrados(ano: int = None, mes: int = None) -> Optional[D
         return None
 
 
-def get_evolucao_modalidades_mensal(ano: int = 2025) -> Optional[Dict[str, Any]]:
+def get_evolucao_modalidades_mensal(
+        ano: int = 2025) -> Optional[Dict[str, Any]]:
     """
     Retorna evolução das modalidades mês a mês para um ano específico
     """

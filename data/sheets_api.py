@@ -33,7 +33,6 @@ def fetch_google_sheet_data(
                 # Normalizar todas as linhas para ter o mesmo número de colunas
                 normalized_rows = []
                 for i, row in enumerate(rows):
-                    # Se a linha tem menos colunas que o cabeçalho, preencher com strings vazias
                     if len(row) < max_cols:
                         row.extend([''] * (max_cols - len(row)))
                     # Se a linha tem mais colunas que o cabeçalho, truncar

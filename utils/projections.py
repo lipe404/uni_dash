@@ -16,7 +16,8 @@ class SalesProjector:
             9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
         }
 
-    def prepare_historical_data(self, vendas_mensais: Dict[str, int]) -> Tuple[List[int], List[int]]:
+    def prepare_historical_data(self, vendas_mensais: Dict[
+            str, int]) -> Tuple[List[int], List[int]]:
         """Prepara dados históricos para projeção"""
         meses_ordenados = []
         vendas_ordenadas = []
@@ -33,12 +34,15 @@ class SalesProjector:
 
         return meses_ordenados, vendas_ordenadas
 
-    def _calculate_average_monthly_change(self, historical_sales: List[int]) -> Tuple[float, float]:
+    def _calculate_average_monthly_change(
+            self, historical_sales: List[int]) -> Tuple[float, float]:
         """
         Calcula a média de TODAS as variações mensais e seu desvio padrão.
         """
         if len(historical_sales) < 2:
-            return (max(1.0, historical_sales[0] * 0.05) if historical_sales else 1.0, 0.0)
+            return (max(
+                1.0, historical_sales[
+                    0] * 0.05) if historical_sales else 1.0, 0.0)
 
         all_diffs = []
         for i in range(1, len(historical_sales)):
@@ -49,7 +53,7 @@ class SalesProjector:
             average_change = np.mean(all_diffs)
             std_dev_change = np.std(all_diffs)
 
-            # Limite inferior para a média de mudança (evita quedas drásticas irreais)
+            # Limite inferior para a média de mudança
             if average_change < -historical_sales[-1] * 0.5:
                 # Max 10% de queda por mês
                 average_change = -historical_sales[-1] * 0.1
@@ -59,7 +63,12 @@ class SalesProjector:
             last_val = historical_sales[-1]
             return (max(1.0, last_val * 0.01) if last_val > 0 else 1.0, 0.0)
 
-    def _project_base(self, last_value: float, increment: float, meses: int, std_dev: float = 0.0) -> Tuple[List[float], List[float], List[float]]:
+    def _project_base(
+            self, last_value: float,
+            increment: float,
+            meses: int,
+            std_dev: float = 0.0) -> Tuple[
+                List[float], List[float], List[float]]:
         """
         Base para projeções mensais com cone de incerteza.
         Retorna projeção média, limite inferior e limite superior.
@@ -72,8 +81,8 @@ class SalesProjector:
         for i in range(meses):
             current_val += increment
 
-            # Adicionar incerteza (ex: 1.96 * desvio padrão para 95% de confiança)
-            # O fator de incerteza aumenta com o tempo (raiz quadrada do número de passos)
+            # Adicionar incerteza
+            # O fator de incerteza aumenta com o tempo
             # Ajuste o multiplicador (1.5) conforme a amplitude desejada
             uncertainty = std_dev * np.sqrt(i + 1) * 1.5
 
@@ -87,9 +96,14 @@ class SalesProjector:
 
         return projecoes, lower_bounds, upper_bounds
 
-    def _linear_regression_projection(self, meses_hist: List[int], vendas_hist: List[int], meses_projecao: int) -> Tuple[List[float], List[float], List[float]]:
+    def _linear_regression_projection(
+            self, meses_hist: List[int],
+            vendas_hist: List[int],
+            meses_projecao: int) -> Tuple[
+                List[float], List[float], List[float]]:
         if len(meses_hist) < 2:
-            return self._project_base(vendas_hist[-1] if vendas_hist else 0, 1.0, meses_projecao)
+            return self._project_base(
+                vendas_hist[-1] if vendas_hist else 0, 1.0, meses_projecao)
 
         X = np.array(meses_hist).reshape(-1, 1)
         y = np.array(vendas_hist)
@@ -111,11 +125,13 @@ class SalesProjector:
             std_dev_residuals = 0.0
 
         # Baseado na tendência
-        return self._project_base(vendas_hist[-1], 0.0, meses_projecao, std_dev_residuals)
-        # Ou simplesmente retornar predictions e calcular bounds externamente se for preferível não usar _project_base
-        # Aqui, vamos usar a _project_base para manter a consistência do cone
+        return self._project_base(
+            vendas_hist[-1], 0.0, meses_projecao, std_dev_residuals)
 
-    def _moving_average_projection(self, vendas_hist: List[int], meses_projecao: int, window: int = 3) -> Tuple[List[float], List[float], List[float]]:
+    def _moving_average_projection(
+            self, vendas_hist: List[int],
+            meses_projecao: int, window: int = 3) -> Tuple[
+                List[float], List[float], List[float]]:
         if not vendas_hist:
             return self._project_base(0, 1.0, meses_projecao)
 
@@ -126,19 +142,27 @@ class SalesProjector:
 
         # Estimar desvio padrão dos últimos valores
         std_dev = np.std(vendas_hist[-window:]) if len(
-            vendas_hist) >= window else np.std(vendas_hist) if vendas_hist else 0.0
+            vendas_hist) >= window else np.std(
+                vendas_hist) if vendas_hist else 0.0
 
-        return self._project_base(vendas_hist[-1], ma - vendas_hist[-1] if vendas_hist else ma, meses_projecao, std_dev)
+        return self._project_base(
+            vendas_hist[-1], ma - vendas_hist[
+                -1] if vendas_hist else ma, meses_projecao, std_dev)
 
-    def _arima_projection(self, vendas_hist: List[int], meses_projecao: int) -> Tuple[List[float], List[float], List[float]]:
+    def _arima_projection(
+            self,
+            vendas_hist: List[int],
+            meses_projecao: int) -> Tuple[
+                List[float], List[float], List[float]]:
         if len(vendas_hist) < 5:  # ARIMA precisa de mais dados
-            return self._project_base(vendas_hist[-1] if vendas_hist else 0, 1.0, meses_projecao)
+            return self._project_base(
+                vendas_hist[-1] if vendas_hist else 0, 1.0, meses_projecao)
 
         try:
             # Tentar um modelo ARIMA simples (p,d,q) = (1,1,0) ou (1,0,0)
-            # 1,1,0: Considera uma diferença para tornar a série estacionária e um termo AR.
+            # 1,1,0: Considera uma diferença para tornar a série estacionária.
             # 1,0,0: Apenas um termo AR.
-            # Se for muito ruidoso, pode usar (0,1,1) ou (1,1,1). Ajustar conforme o comportamento dos dados.
+            # Se for muito ruidoso, pode usar (0,1,1) ou (1,1,1).
             # Pode ser (1,0,0) se os dados já forem estacionários
             model = ARIMA(vendas_hist, order=(1, 1, 0))
             model_fit = model.fit()
@@ -159,9 +183,15 @@ class SalesProjector:
             return predictions, lower_bounds, upper_bounds
         except Exception as e:
             st.warning(f"Erro no modelo ARIMA, utilizando fallback: {e}")
-            return self._project_base(vendas_hist[-1] if vendas_hist else 0, 1.0, meses_projecao)
+            return self._project_base(
+                vendas_hist[-1] if vendas_hist else 0, 1.0, meses_projecao)
 
-    def _calculate_cumulative_projections(self, historical_sales: List[int], meses_projecao: int, monthly_projections: List[float], lower_bounds_monthly: List[float], upper_bounds_monthly: List[float]) -> Tuple[List[int], List[int], List[int]]:
+    def _calculate_cumulative_projections(
+            self, historical_sales: List[int],
+            meses_projecao: int, monthly_projections: List[float],
+            lower_bounds_monthly: List[float],
+            upper_bounds_monthly: List[float]) -> Tuple[
+                List[int], List[int], List[int]]:
         """
         Calcula projeções acumuladas baseadas nas projeções mensais.
         O acumulado SEMPRE cresce, nunca diminui.
@@ -209,7 +239,8 @@ class SalesProjector:
 
         return last_month_sales
 
-    def calculate_projections(self, vendas_mensais: Dict[str, int], meses_projecao: int = 6,
+    def calculate_projections(self, vendas_mensais: Dict[str, int],
+                              meses_projecao: int = 6,
                               model_type: str = "Média de Variação",
                               growth_factor: Optional[float] = None) -> Dict:
         """
@@ -248,24 +279,30 @@ class SalesProjector:
                     vendas_hist)
                 projecoes_mensais, lower_bounds_mensais, upper_bounds_mensais = \
                     self._project_base(
-                        last_historical_sales, avg_change, meses_projecao, std_dev_change)
+                        last_historical_sales,
+                        avg_change, meses_projecao, std_dev_change)
             elif model_type == "Regressão Linear":
-                projecoes_mensais, lower_bounds_mensais, upper_bounds_mensais = \
+                projecoes_mensais,
+                lower_bounds_mensais, upper_bounds_mensais = \
                     self._linear_regression_projection(
                         meses_hist_nums, vendas_hist, meses_projecao)
             elif model_type == "Média Móvel":
-                projecoes_mensais, lower_bounds_mensais, upper_bounds_mensais = \
+                projecoes_mensais,
+                lower_bounds_mensais, upper_bounds_mensais = \
                     self._moving_average_projection(
                         vendas_hist, meses_projecao)
             elif model_type == "ARIMA":
-                projecoes_mensais, lower_bounds_mensais, upper_bounds_mensais = \
+                projecoes_mensais,
+                lower_bounds_mensais, upper_bounds_mensais = \
                     self._arima_projection(vendas_hist, meses_projecao)
             else:  # Fallback para média de variação
                 avg_change, std_dev_change = self._calculate_average_monthly_change(
                     vendas_hist)
-                projecoes_mensais, lower_bounds_mensais, upper_bounds_mensais = \
+                projecoes_mensais,
+                lower_bounds_mensais, upper_bounds_mensais = \
                     self._project_base(
-                        last_historical_sales, avg_change, meses_projecao, std_dev_change)
+                        last_historical_sales,
+                        avg_change, meses_projecao, std_dev_change)
 
             # Aplicar fator de crescimento do cenário "E se..."
             if growth_factor is not None:
@@ -277,10 +314,11 @@ class SalesProjector:
                 upper_bounds_mensais = [round(u * factor)
                                         for u in upper_bounds_mensais]
 
-            # Recalcular projeções acumuladas com base nas projeções mensais (média e bounds)
+            # Recalcular projeções acumuladas com base nas projeções mensais
             projecoes_acumuladas, lower_bounds_acumuladas, upper_bounds_acumuladas = \
                 self._calculate_cumulative_projections(
-                    vendas_hist, meses_projecao, projecoes_mensais, lower_bounds_mensais, upper_bounds_mensais)
+                    vendas_hist, meses_projecao, projecoes_mensais,
+                    lower_bounds_mensais, upper_bounds_mensais)
 
             # Estatísticas
             media_ano = np.mean(vendas_hist)
@@ -297,7 +335,8 @@ class SalesProjector:
                 'media_mensal_atual': round(media_ano, 1),
                 'vendas_mes_anterior': mes_anterior_vendas,
                 'mes_atual': datetime.now().month,
-                'confiabilidade': self._calculate_confidence_simple(vendas_hist),
+                'confiabilidade': self._calculate_confidence_simple(
+                    vendas_hist),
                 'meses_historicos': len(vendas_hist)
             }
 
@@ -324,13 +363,14 @@ class SalesProjector:
             else:
                 return "Baixa"
 
-    def _simple_projection(self, vendas_mensais: Dict[str, int], meses: int) -> Dict:
-        """Projeção simples para fallback quando ocorre erro ou não há dados suficientes"""
+    def _simple_projection(
+            self, vendas_mensais: Dict[str, int], meses: int) -> Dict:
+        """Projeção simples para fallback quando ocorre erro"""
         valores = [v for v in vendas_mensais.values() if v > 0]
 
         media = np.mean(valores) if valores else 1
 
-        # Incremento padrão se não houver dados suficientes ou ocorrências significativas
+        # Incremento padrão se não houver dados suficientes
         if len(valores) < 2:
             tendencia = media * 0.05
         else:
@@ -343,7 +383,6 @@ class SalesProjector:
             valor_base += tendencia
             projecoes.append(round(max(1, valor_base)))
 
-        # Para o fallback, os limites superior e inferior serão a própria projeção para simplicidade
         lower_bounds = [p for p in projecoes]
         upper_bounds = [p for p in projecoes]
 
@@ -370,7 +409,8 @@ class SalesProjector:
             'meses_historicos': len(valores)
         }
 
-    def calculate_targets(self, projecoes: Dict, vendas_mensais: Dict[str, int]) -> Dict:
+    def calculate_targets(
+            self, projecoes: Dict, vendas_mensais: Dict[str, int]) -> Dict:
         """Calcula metas e comparações"""
         # Apenas valores históricos > 0
         valores_historicos = [v for v in vendas_mensais.values() if v > 0]
@@ -386,7 +426,8 @@ class SalesProjector:
                 'melhor_mes_vendas': 0
             }
 
-        proximo_mes_proj = projecoes['projecoes_mensais'][0] if projecoes['projecoes_mensais'] else 0
+        proximo_mes_proj = projecoes['projecoes_mensais'][0] if projecoes[
+            'projecoes_mensais'] else 0
         mes_anterior = projecoes['vendas_mes_anterior']
         media_ano = projecoes['media_mensal_atual']
         melhor_mes = max(valores_historicos)

@@ -6,7 +6,8 @@ from .partner_data import get_parceiro_vendas_detalhadas
 
 
 def get_estatisticas_parceiro(
-        parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, Any]]:
+        parceiro_nome: str, ano: int = None,
+        mes: int = None) -> Optional[Dict[str, Any]]:
     """
     Retorna estatísticas gerais do parceiro
     """
@@ -18,10 +19,12 @@ def get_estatisticas_parceiro(
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if df_filtrado.empty:
                 return None
@@ -71,7 +74,8 @@ def get_estatisticas_parceiro(
 
 def get_estatisticas_parceiro_filtradas(
         parceiro_nome: str,
-        ano: int = None, mes: int = None, modalidade: str = None) -> Optional[Dict[str, Any]]:
+        ano: int = None, mes: int = None,
+        modalidade: str = None) -> Optional[Dict[str, Any]]:
     """
     Retorna estatísticas gerais do parceiro com filtro de modalidade
     """
@@ -83,10 +87,12 @@ def get_estatisticas_parceiro_filtradas(
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             # Aplicar filtro de modalidade
             if modalidade and modalidade != "Todas":
@@ -101,7 +107,8 @@ def get_estatisticas_parceiro_filtradas(
             variedade_cursos = df_filtrado['Curso'].nunique()
 
             # Se filtrado por mod. espec., variedade_modalidades será sempre 1
-            variedade_modalidades = 1 if modalidade and modalidade != "Todas" else df_filtrado['Nível'].nunique(
+            variedade_modalidades = 1 if modalidade and modalidade != "Todas" else df_filtrado[
+                'Nível'].nunique(
             )
 
             # Modalidade mais vendida (será a própria modalidade se filtrada)
@@ -115,7 +122,8 @@ def get_estatisticas_parceiro_filtradas(
                     modalidades_count[nivel] = modalidades_count.get(
                         nivel, 0) + qtd
                 modalidade_top = max(modalidades_count.items(),
-                                     key=lambda x: x[1]) if modalidades_count else ("Nenhuma", 0)
+                                     key=lambda x: x[1]) if modalidades_count else (
+                                         "Nenhuma", 0)
 
             # Curso mais vendido
             cursos_count = {}

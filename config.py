@@ -14,15 +14,15 @@ def get_env_var(name: str) -> str:
     try:
         if hasattr(st, 'secrets') and name in st.secrets:
             return st.secrets[name]
-    except:
-        pass
+    except Exception as e:
+        print(f"Erro ao acessar secrets: {str(e)}")
 
     # Se não encontrar, tenta pegar das variáveis de ambiente (local)
     value = os.getenv(name)
     if value is None:
         raise ValueError(
             f"Variável de ambiente '{name}' não configurada. "
-            f"Por favor, verifique seu arquivo .env local ou os secrets do Streamlit Cloud."
+            f"Por favor, verifique seu arquivo .env local ou os secrets."
         )
     return value
 

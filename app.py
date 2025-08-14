@@ -83,8 +83,11 @@ def main():
         """, unsafe_allow_html=True)
 
         # Menu de navegação
-        menu_options = ["📊 Meu Dashboard", "📋 Relatórios e Metas", "🌍 Dashboard Público"]
-        selected_page = st.sidebar.selectbox("📋 Navegação", menu_options)
+        menu_options = ["📊 Meu Dashboard",
+                        "📋 Relatórios e Metas",
+                        "🌍 Dashboard Público"]
+        selected_page = st.sidebar.selectbox("Selecione uma página abaixo:",
+                                             menu_options)
 
         auth_manager.render_logout_button()
 

@@ -5,8 +5,9 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 
 
-def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dict) -> go.Figure:
-    """Cria gráfico de vendas com projeções mensais, incluindo cone de incerteza"""
+def create_sales_projection_chart(vendas_mensais: Dict[str, int],
+                                  projecoes: Dict) -> go.Figure:
+    """Cria gráfico de vendas com projeções mensais"""
 
     _month_abbr_to_num = {
         "jan": 1, "fev": 2, "mar": 3, "abr": 4,
@@ -26,7 +27,7 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
             return None
         return None
 
-    # --- Preparar Dados Históricos ---
+    # Preparar Dados Históricos
     historical_points = []
     for month_key, sales_value in vendas_mensais.items():
         date_obj = _parse_month_key_to_date(month_key)
@@ -53,7 +54,7 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
         last_historical_date = df_hist['date'].iloc[-1]
         last_historical_sales = df_hist['sales'].iloc[-1]
 
-        # Adicionar o último ponto histórico às séries de projeção para conectar as linhas
+        # Adicionar o último ponto histórico às séries de projeção
         x_projection.append(last_historical_date)
         y_projection.append(last_historical_sales)
         # Inicia no mesmo ponto
@@ -69,8 +70,7 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
             y_lower_projection.append(lower_bounds[i])
             y_upper_projection.append(upper_bounds[i])
     else:
-        # Se não há histórico, a projeção deve começar de um ponto zero ou definido
-        # Para simplificar aqui, se não há histórico, os gráficos de projeção ficarão vazios (ou use um fallback no projections.py)
+        # Se não há histórico, a projeção deve começar de um ponto zero
         pass
 
     fig = go.Figure()
@@ -88,7 +88,8 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
         ))
 
     # Cone de Incerteza (área preenchida entre upper e lower)
-    if x_projection and y_lower_projection and y_upper_projection and len(x_projection) > 1:
+    if x_projection and y_lower_projection and y_upper_projection and len(
+            x_projection) > 1:
         fig.add_trace(go.Scatter(
             x=x_projection + x_projection[::-1],  # X para cima e para baixo
             # Y para cima e para baixo invertido
@@ -114,24 +115,6 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
             hovertemplate='<b>%{x|%b/%Y}</b><br>Projeção: %{y}<extra></extra>'
         ))
 
-        # Opcional: Linhas dos limites superior e inferior (sem preenchimento, apenas para referência)
-        # fig.add_trace(go.Scatter(
-        #     x=x_projection,
-        #     y=y_lower_projection,
-        #     mode='lines',
-        #     name='Limite Inferior',
-        #     line=dict(color='rgba(255,127,14,0.5)', width=1, dash='dot'),
-        #     showlegend=False
-        # ))
-        # fig.add_trace(go.Scatter(
-        #     x=x_projection,
-        #     y=y_upper_projection,
-        #     mode='lines',
-        #     name='Limite Superior',
-        #     line=dict(color='rgba(255,127,14,0.5)', width=1, dash='dot'),
-        #     showlegend=False
-        # ))
-
     fig.update_layout(
         title='📈 Vendas Mensais e Projeções',
         xaxis_title='Meses',
@@ -148,8 +131,9 @@ def create_sales_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dic
     return fig
 
 
-def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes: Dict) -> go.Figure:
-    """Cria gráfico de vendas acumuladas com projeções, incluindo cone de incerteza"""
+def create_cumulative_projection_chart(
+        vendas_mensais: Dict[str, int], projecoes: Dict) -> go.Figure:
+    """Cria gráfico de vendas acumuladas com projeções"""
 
     _month_abbr_to_num = {
         "jan": 1, "fev": 2, "mar": 3, "abr": 4,
@@ -169,7 +153,7 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
             return None
         return None
 
-    # --- Preparar Dados Históricos ---
+    # Preparar Dados Históricos
     historical_points = []
     for month_key, sales_value in vendas_mensais.items():
         date_obj = _parse_month_key_to_date(month_key)
@@ -184,7 +168,7 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
     x_historical_cum = df_hist['date'].tolist()
     y_historical_cum = df_hist['cumulative_sales'].tolist()
 
-    # --- Preparar Dados de Projeção Acumulada ---
+    # Preparar Dados de Projeção Acumulada
     projecoes_acumuladas = projecoes.get('projecoes_acumuladas', [])
     lower_bounds_acumuladas = projecoes.get('lower_bounds_acumuladas', [])
     upper_bounds_acumuladas = projecoes.get('upper_bounds_acumuladas', [])
@@ -231,7 +215,8 @@ def create_cumulative_projection_chart(vendas_mensais: Dict[str, int], projecoes
         ))
 
     # Cone de Incerteza Acumulado
-    if x_projection_cum and y_lower_projection_cum and y_upper_projection_cum and len(x_projection_cum) > 1:
+    if x_projection_cum and y_lower_projection_cum and y_upper_projection_cum and len(
+            x_projection_cum) > 1:
         fig.add_trace(go.Scatter(
             x=x_projection_cum + x_projection_cum[::-1],
             y=y_upper_projection_cum + y_lower_projection_cum[::-1],
@@ -305,7 +290,7 @@ def create_targets_comparison_chart(targets: Dict) -> go.Figure:
     categorias_falta = []
     valores_falta_display = []
 
-    # Calcular o que falta (falta_mes_anterior, falta_media_ano, falta_melhor_mes já vêm positivos se "falta")
+    # Calcular o que falta
     valores_falta_calc = [
         0,  # Próximo mês (sem falta direta)
         targets['falta_mes_anterior'],
@@ -337,21 +322,19 @@ def create_targets_comparison_chart(targets: Dict) -> go.Figure:
                 y=[abs(falta)],
                 marker_color='rgba(44, 160, 44, 0.7)',  # Cor para superação
                 textposition='outside',
-                hovertemplate=f'<b>{cat}</b><br>Superou: {abs(falta)}<extra></extra>',
+                hovertemplate=f'<b>{cat}</b><br>Superou: {
+                    abs(falta)}<extra></extra>',
                 showlegend=False,
                 base=valores_principais[i]  # Começa no valor da referência
             ))
-
-    # A projeção do próximo mês pode ser negativa (se for menor que o mês anterior, por exemplo)
-    # Mas no gráfico de metas, "falta" geralmente significa a diferença *positiva*
-    # Se a projeção do próximo mês for muito baixa, não queremos uma barra "negativa" de falta
 
     # Linha de referência da projeção
     fig.add_hline(
         y=targets['proximo_mes_projecao'],
         line_dash="dot",
         line_color="rgba(52, 152, 219, 0.8)",
-        annotation_text=f"Linha de Projeção: {targets['proximo_mes_projecao']}",
+        annotation_text=f"Linha de Projeção: {
+            targets['proximo_mes_projecao']}",
         annotation_position="top right"
     )
 
@@ -361,7 +344,7 @@ def create_targets_comparison_chart(targets: Dict) -> go.Figure:
         yaxis_title='Número de Vendas',
         template='plotly_white',
         height=500,
-        barmode='stack',  # Usar stack para "atingido" e "falta" ficarem na mesma barra
+        barmode='stack',
         showlegend=True
     )
 

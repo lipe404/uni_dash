@@ -239,7 +239,7 @@ def _render_modality_analysis(df_inadimplentes: pd.DataFrame) -> None:
 
 def _render_inadimplentes_preview(df_inadimplentes: pd.DataFrame) -> None:
     """Renderiza preview dos inadimplentes"""
-    st.markdown("#### �� Preview dos Alunos Inadimplentes")
+    st.markdown("#### Preview dos Alunos Inadimplentes")
 
     colunas_preview = ['Aluno', 'Nível', 'Curso',
                        'IES', 'Dt Pagto', 'Qtd. Matrículas']

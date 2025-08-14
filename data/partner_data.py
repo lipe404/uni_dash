@@ -14,7 +14,8 @@ def get_parceiro_vendas_data(parceiro_nome: str) -> Optional[Dict[str, Any]]:
 
         if df_parceiros is not None:
             parceiro_data = df_parceiros[
-                df_parceiros['Parceiro - VENDAS PINCEL + GESTOR'] == parceiro_nome
+                df_parceiros[
+                    'Parceiro - VENDAS PINCEL + GESTOR'] == parceiro_nome
             ]
 
             if not parceiro_data.empty:
@@ -38,8 +39,10 @@ def get_parceiro_vendas_data(parceiro_nome: str) -> Optional[Dict[str, Any]]:
                     'parceiro': data['Parceiro - VENDAS PINCEL + GESTOR'],
                     'tipo': data['TIPO'],
                     'responsavel': data['RESPONSÁVEL'],
-                    'total_2025': pd.to_numeric(data.get('TOTAL 2025', 0), errors='coerce') or 0,
-                    'vendas_2024_2025': pd.to_numeric(data.get('VENDAS 2024 + 2025', 0), errors='coerce') or 0,
+                    'total_2025': pd.to_numeric(data.get(
+                        'TOTAL 2025', 0), errors='coerce') or 0,
+                    'vendas_2024_2025': pd.to_numeric(data.get(
+                        'VENDAS 2024 + 2025', 0), errors='coerce') or 0,
                     'vendas_mensais': vendas_mensais
                 }
 
@@ -50,7 +53,8 @@ def get_parceiro_vendas_data(parceiro_nome: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def get_parceiro_vendas_detalhadas(parceiro_nome: str) -> Optional[pd.DataFrame]:
+def get_parceiro_vendas_detalhadas(
+        parceiro_nome: str) -> Optional[pd.DataFrame]:
     """
     Retorna dados detalhados de vendas de um parceiro específico.
     """
@@ -89,7 +93,8 @@ def get_parceiro_vendas_detalhadas(parceiro_nome: str) -> Optional[pd.DataFrame]
 
 
 def get_modalidades_parceiro_filtradas(
-        parceiro_nome: str, ano: int = None, mes: int = None) -> Optional[Dict[str, int]]:
+        parceiro_nome: str, ano: int = None,
+        mes: int = None) -> Optional[Dict[str, int]]:
     """
     Retorna modalidades mais vendidas do parceiro com filtros de data
     """
@@ -100,10 +105,12 @@ def get_modalidades_parceiro_filtradas(
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if df_filtrado.empty:
                 return None
@@ -116,7 +123,9 @@ def get_modalidades_parceiro_filtradas(
 
             # Ordenar por quantidade e pegar top 10
             modalidades_ordenadas = dict(
-                sorted(modalidades.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(modalidades.items(),
+                       key=lambda x: x[1],
+                       reverse=True)[:10])
 
             return modalidades_ordenadas
 
@@ -141,10 +150,12 @@ def get_cursos_parceiro_filtrados(
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             if modalidade and modalidade != "Todas":
                 df_filtrado = df_filtrado[df_filtrado['Nível'] == modalidade]
@@ -218,7 +229,9 @@ def get_modalidades_parceiro(parceiro_nome: str) -> Optional[Dict[str, int]]:
 
             # Ordenar por quantidade e pegar top 10
             modalidades_ordenadas = dict(
-                sorted(modalidades.items(), key=lambda x: x[1], reverse=True)[:10])
+                sorted(modalidades.items(),
+                       key=lambda x: x[1],
+                       reverse=True)[:10])
 
             return modalidades_ordenadas
 
@@ -285,10 +298,12 @@ def get_modalidades_parceiro_unica(
             df_filtrado = df_vendas.copy()
 
             if ano:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.year == ano]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.year == ano]
 
             if mes:
-                df_filtrado = df_filtrado[df_filtrado['Dt Pagto'].dt.month == mes]
+                df_filtrado = df_filtrado[df_filtrado[
+                    'Dt Pagto'].dt.month == mes]
 
             # Filtrar pela modalidade específica
             df_filtrado = df_filtrado[df_filtrado['Nível'] == modalidade]
