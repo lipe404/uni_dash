@@ -9,7 +9,8 @@ from utils.charts_projections import (
 )
 
 
-def render_projections_section(vendas_data: Dict[str, Any], parceiro_nome: str) -> None:
+def render_projections_section(vendas_data: Dict[str, Any],
+                               parceiro_nome: str) -> None:
     """Renderiza seção de projeções e metas"""
 
     st.markdown("### 🔮 Projeções de Vendas")
@@ -82,8 +83,10 @@ def _render_projection_controls() -> tuple:
     return meses_projecao, model_type, growth_factor_percent, target_value_scenario
 
 
-def _calculate_projections(vendas_data: Dict[str, Any], meses_projecao: int,
-                           model_type: str, growth_factor_percent: float) -> tuple:
+def _calculate_projections(vendas_data: Dict[str, Any],
+                           meses_projecao: int,
+                           model_type: str,
+                           growth_factor_percent: float) -> tuple:
     """
     Calcula projeções e targets
     """
@@ -103,7 +106,9 @@ def _calculate_projections(vendas_data: Dict[str, Any], meses_projecao: int,
     return projecoes, targets
 
 
-def _render_projection_kpis(projecoes: Dict[str, Any], targets: Dict[str, Any], meses_projecao: int) -> None:
+def _render_projection_kpis(projecoes: Dict[str, Any],
+                            targets: Dict[str, Any],
+                            meses_projecao: int) -> None:
     """
     Renderiza KPIs de projeção
     """
@@ -141,7 +146,9 @@ def _render_projection_kpis(projecoes: Dict[str, Any], targets: Dict[str, Any], 
         )
 
 
-def _render_projection_charts(vendas_data: Dict[str, Any], projecoes: Dict[str, Any], targets: Dict[str, Any]) -> None:
+def _render_projection_charts(vendas_data: Dict[str, Any],
+                              projecoes: Dict[str, Any],
+                              targets: Dict[str, Any]) -> None:
     """
     Renderiza gráficos de projeção
     """
@@ -162,7 +169,9 @@ def _render_projection_charts(vendas_data: Dict[str, Any], projecoes: Dict[str, 
     st.plotly_chart(fig_targets, use_container_width=True)
 
 
-def _render_targets_analysis(projecoes: Dict[str, Any], targets: Dict[str, Any], target_value_scenario: int) -> None:
+def _render_targets_analysis(projecoes: Dict[str, Any],
+                             targets: Dict[str, Any],
+                             target_value_scenario: int) -> None:
     """
     Renderiza análise de metas
     """

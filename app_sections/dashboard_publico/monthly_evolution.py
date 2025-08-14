@@ -62,16 +62,19 @@ def _render_evolution_insights(evolucao_data: dict) -> None:
     if len(evolucao_data) >= 2:
         # Comparar primeiro e último mês com dados
         meses_com_dados = [
-            mes for mes, dados in evolucao_data.items() if dados['modalidades']]
+            mes for mes, dados in evolucao_data.items() if dados[
+                'modalidades']]
 
         if len(meses_com_dados) >= 2:
             primeiro_mes = meses_com_dados[0]
             ultimo_mes = meses_com_dados[-1]
 
             modalidade_inicio = max(
-                evolucao_data[primeiro_mes]['modalidades'].items(), key=lambda x: x[1])
+                evolucao_data[primeiro_mes][
+                    'modalidades'].items(), key=lambda x: x[1])
             modalidade_fim = max(
-                evolucao_data[ultimo_mes]['modalidades'].items(), key=lambda x: x[1])
+                evolucao_data[ultimo_mes][
+                    'modalidades'].items(), key=lambda x: x[1])
 
             col_insight1, col_insight2 = st.columns(2)
 

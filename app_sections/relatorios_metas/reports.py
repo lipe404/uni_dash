@@ -13,7 +13,8 @@ from .components import (
 )
 
 
-def render_reports_section(parceiro_nome: str, modalidades_disponiveis: List[str]) -> None:
+def render_reports_section(parceiro_nome: str,
+                           modalidades_disponiveis: List[str]) -> None:
     """Renderiza seção de geração de relatórios"""
 
     st.markdown("### 📄 Geração de Relatórios")

@@ -80,7 +80,8 @@ def render_preview_metrics(df_preview: pd.DataFrame) -> None:
         st.metric("📖 Cursos", df_preview['Curso'].nunique())
 
 
-def render_preview_table(df_preview: pd.DataFrame, tipo_relatorio: str) -> None:
+def render_preview_table(df_preview: pd.DataFrame,
+                         tipo_relatorio: str) -> None:
     """
     Renderiza tabela de preview
     """
@@ -94,7 +95,8 @@ def render_preview_table(df_preview: pd.DataFrame, tipo_relatorio: str) -> None:
         df_show['Dt Pagto'] = df_show['Dt Pagto'].dt.strftime('%d/%m/%Y')
 
         if 'Valor Taxa Matrícula' in df_show.columns:
-            df_show['Valor Taxa Matrícula'] = df_show['Valor Taxa Matrícula'].apply(
+            df_show['Valor Taxa Matrícula'] = df_show[
+                'Valor Taxa Matrícula'].apply(
                 lambda x: str(x) if pd.notna(x) else "N/A"
             )
 
@@ -247,7 +249,7 @@ def render_no_data_suggestions() -> None:
     Renderiza sugestões quando não há dados
     """
     st.warning(
-        "⚠️ Nenhum dado encontrado para os filtros selecionados. Tente ajustar os parâmetros.")
+        "Nenhum dado encontrado para os filtros selecionados. Tente ajustar os parâmetros.")
 
     st.markdown("#### 💡 Sugestões:")
     st.info("""

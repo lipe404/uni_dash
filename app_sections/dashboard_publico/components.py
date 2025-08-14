@@ -4,7 +4,8 @@ import pandas as pd
 from typing import Dict, Any
 
 
-def render_tabelas_detalhadas(dados_publicos: Dict[str, Any], periodo_texto: str = "") -> None:
+def render_tabelas_detalhadas(dados_publicos: Dict[str, Any],
+                              periodo_texto: str = "") -> None:
     """
     Renderiza tabelas detalhadas dos dados
     """
@@ -57,7 +58,8 @@ def render_tabelas_detalhadas(dados_publicos: Dict[str, Any], periodo_texto: str
                     st.info(f"➕ **Outros cursos:** {outros_cursos}")
 
 
-def render_insights(dados_publicos: Dict[str, Any], periodo_texto: str = "") -> None:
+def render_insights(dados_publicos: Dict[str, Any],
+                    periodo_texto: str = "") -> None:
     """
     Renderiza insights dos dados
     """
@@ -90,7 +92,8 @@ def render_insights(dados_publicos: Dict[str, Any], periodo_texto: str = "") -> 
                 f"📚 **Curso Líder:** {curso_nome} ({percentual_top_curso:.1f}%)")
 
 
-def render_charts_section(dados: Dict[str, Any], periodo_texto: str = "") -> None:
+def render_charts_section(dados: Dict[str, Any],
+                          periodo_texto: str = "") -> None:
     """
     Renderiza seção de gráficos
     """

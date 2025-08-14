@@ -24,7 +24,8 @@ def render_main_charts(vendas_data: Dict[str, Any]) -> None:
         st.plotly_chart(fig_acumulado, use_container_width=True)
 
 
-def render_evolution_chart(evolucao_data: List[Dict[str, Any]], mes_nome: str, ano: int) -> None:
+def render_evolution_chart(evolucao_data: List[Dict[str, Any]],
+                           mes_nome: str, ano: int) -> None:
     """
     Renderiza gráfico de evolução de matrículas
     """

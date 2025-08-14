@@ -16,20 +16,28 @@ from utils.graphs import (
 from typing import Dict, Any, Optional
 
 
-def render_general_analysis(parceiro_nome: str, ano_analise: Optional[int], mes_analise: Optional[int],
-                            modalidade_selecionada: str, periodo_texto: str, stats_data: Dict[str, Any]) -> None:
+def render_general_analysis(parceiro_nome: str,
+                            ano_analise: Optional[int],
+                            mes_analise: Optional[int],
+                            modalidade_selecionada: str,
+                            periodo_texto: str,
+                            stats_data: Dict[str, Any]) -> None:
     """
     Renderiza análise geral (visão geral)
     """
     if modalidade_selecionada and modalidade_selecionada != "Todas":
-        _render_specific_modality_analysis(parceiro_nome, ano_analise, mes_analise,
-                                           modalidade_selecionada, periodo_texto, stats_data)
+        _render_specific_modality_analysis(parceiro_nome, ano_analise,
+                                           mes_analise, modalidade_selecionada,
+                                           periodo_texto, stats_data)
     else:
         _render_all_modalities_analysis(
             parceiro_nome, ano_analise, mes_analise, periodo_texto)
 
 
-def render_comparative_analysis(parceiro_nome: str, mes_analise: Optional[int], modalidade_selecionada: str) -> None:
+def render_comparative_analysis(
+        parceiro_nome: str,
+        mes_analise: Optional[int],
+        modalidade_selecionada: str) -> None:
     """
     Renderiza análise comparativa 2025 vs Mês
     """
@@ -49,11 +57,13 @@ def render_comparative_analysis(parceiro_nome: str, mes_analise: Optional[int], 
             fig_comparativo = create_modalidades_evolucao_chart(
                 modalidades_2025, modalidades_mes, meses[mes_analise])
             fig_comparativo.update_layout(
-                title=f'📊 {modalidade_selecionada}: Total 2025 vs {meses[mes_analise]}')
+                title=f'📊 {modalidade_selecionada}: Total 2025 vs {
+                    meses[mes_analise]}')
             st.plotly_chart(fig_comparativo, use_container_width=True)
         else:
             st.info(
-                f"Dados insuficientes para comparativo da modalidade {modalidade_selecionada}")
+                f"Dados insuficientes para comparativo da modalidade {
+                    modalidade_selecionada}")
     else:
         modalidades_2025 = get_modalidades_parceiro_filtradas(
             parceiro_nome, 2025, None)
@@ -65,14 +75,17 @@ def render_comparative_analysis(parceiro_nome: str, mes_analise: Optional[int], 
         st.plotly_chart(fig_comparativo, use_container_width=True)
 
 
-def render_courses_by_modality_analysis(parceiro_nome: str, ano_analise: Optional[int], mes_analise: Optional[int],
-                                        modalidade_selecionada: str, periodo_texto: str) -> None:
+def render_courses_by_modality_analysis(parceiro_nome: str,
+                                        ano_analise: Optional[int],
+                                        mes_analise: Optional[int],
+                                        modalidade_selecionada: str,
+                                        periodo_texto: str) -> None:
     """
     Renderiza análise de cursos por modalidade
     """
     if modalidade_selecionada == "Todas":
         st.warning(
-            "⚠️ Para análise 'Cursos por Modalidade', selecione uma modalidade específica.")
+            "Para análise 'Cursos por Modalidade', selecione uma modalidade específica.")
         return
 
     cursos_modalidade = get_cursos_parceiro_filtrados(
@@ -103,8 +116,12 @@ def render_courses_by_modality_analysis(parceiro_nome: str, ano_analise: Optiona
             f"Nenhum curso encontrado para a modalidade '{modalidade_selecionada}' no período selecionado.")
 
 
-def _render_specific_modality_analysis(parceiro_nome: str, ano_analise: Optional[int], mes_analise: Optional[int],
-                                       modalidade_selecionada: str, periodo_texto: str, stats_data: Dict[str, Any]) -> None:
+def _render_specific_modality_analysis(parceiro_nome: str,
+                                       ano_analise: Optional[int],
+                                       mes_analise: Optional[int],
+                                       modalidade_selecionada: str,
+                                       periodo_texto: str,
+                                       stats_data: Dict[str, Any]) -> None:
     """
     Renderiza análise para modalidade específica
     """
@@ -152,7 +169,9 @@ def _render_specific_modality_analysis(parceiro_nome: str, ano_analise: Optional
         st.info(f"**📖 Cursos Diferentes:** {stats_data['variedade_cursos']}")
 
 
-def _render_all_modalities_analysis(parceiro_nome: str, ano_analise: Optional[int], mes_analise: Optional[int],
+def _render_all_modalities_analysis(parceiro_nome: str,
+                                    ano_analise: Optional[int],
+                                    mes_analise: Optional[int],
                                     periodo_texto: str) -> None:
     """
     Renderiza análise para todas as modalidades

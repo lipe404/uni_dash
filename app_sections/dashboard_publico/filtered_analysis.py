@@ -5,7 +5,9 @@ from data.fetch_data import get_dados_publicos_filtrados
 from .components import render_tabelas_detalhadas, render_insights, render_charts_section
 
 
-def render_analise_filtrada(ano_filtro: Optional[int], mes_filtro: Optional[int], periodo_texto: str) -> None:
+def render_analise_filtrada(ano_filtro: Optional[int],
+                            mes_filtro: Optional[int],
+                            periodo_texto: str) -> None:
     """
     Renderiza análise com filtros específicos
     """

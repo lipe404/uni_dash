@@ -50,7 +50,8 @@ def render_evolution_filters() -> Tuple[Optional[int], int]:
     return ano_selecionado, mes_selecionado
 
 
-def render_analysis_filters(modalidades_disponiveis: List[str]) -> Tuple[Optional[int], Optional[int], str, str]:
+def render_analysis_filters(modalidades_disponiveis: List[str]) -> Tuple[
+        Optional[int], Optional[int], str, str]:
     """
     Renderiza filtros para análise avançada
     Returns: (ano_analise, mes_analise, modalidade_selecionada, tipo_analise)
@@ -102,7 +103,9 @@ def render_analysis_filters(modalidades_disponiveis: List[str]) -> Tuple[Optiona
     return ano_analise, mes_analise, modalidade_selecionada, tipo_analise
 
 
-def get_period_text(ano_analise: Optional[int], mes_analise: Optional[int], modalidade_selecionada: str) -> str:
+def get_period_text(ano_analise: Optional[int],
+                    mes_analise: Optional[int],
+                    modalidade_selecionada: str) -> str:
     """
     Gera texto descritivo do período selecionado
     """

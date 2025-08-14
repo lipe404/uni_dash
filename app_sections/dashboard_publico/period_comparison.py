@@ -50,7 +50,9 @@ def render_comparativo_periodo() -> None:
         st.error("❌ Não foi possível carregar dados para comparativo.")
 
 
-def _render_comparative_table(modalidades_geral: dict, modalidades_2024: dict, modalidades_2025: dict) -> None:
+def _render_comparative_table(modalidades_geral: dict,
+                              modalidades_2024: dict,
+                              modalidades_2025: dict) -> None:
     """
     Renderiza tabela comparativa
     """
@@ -96,7 +98,9 @@ def _render_comparative_table(modalidades_geral: dict, modalidades_2024: dict, m
         st.dataframe(df_comparativo, use_container_width=True, hide_index=True)
 
 
-def _render_comparative_insights(modalidades_geral: dict, modalidades_2024: dict, modalidades_2025: dict) -> None:
+def _render_comparative_insights(modalidades_geral: dict,
+                                 modalidades_2024: dict,
+                                 modalidades_2025: dict) -> None:
     """
     Renderiza insights comparativos
     """

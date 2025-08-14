@@ -12,7 +12,8 @@ def render_main_kpis(vendas_data: Dict[str, Any]) -> None:
     create_kpi_cards(vendas_data)
 
 
-def render_analysis_kpis(stats_data: Dict[str, Any], periodo_texto: str) -> None:
+def render_analysis_kpis(stats_data: Dict[str, Any],
+                         periodo_texto: str) -> None:
     """
     Renderiza os KPIs da análise avançada
     """
@@ -30,7 +31,8 @@ def render_evolution_metric(evolucao_result: Dict[str, Any]) -> None:
     )
 
 
-def render_highlights(stats_data: Dict[str, Any], modalidade_selecionada: str) -> None:
+def render_highlights(stats_data: Dict[str, Any],
+                      modalidade_selecionada: str) -> None:
     """
     Renderiza destaques do período
     """

@@ -6,7 +6,8 @@ from typing import List
 from utils.report_generator import ReportGenerator
 
 
-def render_inadimplentes_section(parceiro_nome: str, modalidades_disponiveis: List[str]) -> None:
+def render_inadimplentes_section(parceiro_nome: str,
+                                 modalidades_disponiveis: List[str]) -> None:
     """Renderiza seção de relatórios de inadimplentes"""
 
     st.markdown("### ⚠️ Relatório de Alunos Inadimplentes")
@@ -147,12 +148,16 @@ def _render_inadimplentes_filters() -> tuple:
     return ano_param, mes_param, modalidades_param
 
 
-def _get_filtered_inadimplentes(parceiro_nome: str, ano_param, mes_param, modalidades_param):
+def _get_filtered_inadimplentes(parceiro_nome: str,
+                                ano_param,
+                                mes_param,
+                                modalidades_param):
     """Busca dados filtrados de inadimplentes"""
     from data.fetch_data import get_inadimplentes_filtrados
 
     with st.spinner("Carregando dados de inadimplentes..."):
-        return get_inadimplentes_filtrados(parceiro_nome, ano_param, mes_param, modalidades_param)
+        return get_inadimplentes_filtrados(
+            parceiro_nome, ano_param, mes_param, modalidades_param)
 
 
 def _render_no_data_state() -> None:
@@ -270,7 +275,9 @@ def _render_inadimplentes_preview(df_inadimplentes: pd.DataFrame) -> None:
             f"Mostrando apenas os primeiros 20 registros. Total: {len(df_inadimplentes)} inadimplentes.")
 
 
-def _render_inadimplentes_downloads(parceiro_nome: str, ano_param, mes_param, modalidades_param) -> None:
+def _render_inadimplentes_downloads(parceiro_nome: str,
+                                    ano_param, mes_param,
+                                    modalidades_param) -> None:
     """Renderiza botões de download para inadimplentes"""
     st.markdown("#### 📥 Gerar Relatório de Inadimplentes")
 
@@ -279,7 +286,9 @@ def _render_inadimplentes_downloads(parceiro_nome: str, ano_param, mes_param, mo
 
     with col1:
         st.markdown("##### 📊 Excel")
-        if st.button("📊 Gerar Excel Inadimplentes", key="excel_inadimplentes", use_container_width=True):
+        if st.button("📊 Gerar Excel Inadimplentes",
+                     key="excel_inadimplentes",
+                     use_container_width=True):
             with st.spinner("Gerando relatório de inadimplentes Excel..."):
                 excel_data = report_generator.generate_inadimplentes_excel(
                     parceiro_nome, ano_param, mes_param, modalidades_param
@@ -319,7 +328,9 @@ def _render_inadimplentes_downloads(parceiro_nome: str, ano_param, mes_param, mo
 
     with col3:
         st.markdown("##### 📑 PDF")
-        if st.button("📑 Gerar PDF Inadimplentes", key="pdf_inadimplentes", use_container_width=True):
+        if st.button("📑 Gerar PDF Inadimplentes",
+                     key="pdf_inadimplentes",
+                     use_container_width=True):
             with st.spinner("Gerando relatório de inadimplentes PDF..."):
                 pdf_data = report_generator.generate_inadimplentes_pdf(
                     parceiro_nome, ano_param, mes_param, modalidades_param

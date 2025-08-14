@@ -105,14 +105,18 @@ def render_dashboard_individual(parceiro_nome: str):
 
         # Renderizar análise baseada no tipo selecionado
         if tipo_analise == "Visão Geral":
-            render_general_analysis(parceiro_nome, ano_analise, mes_analise,
-                                    modalidade_selecionada, periodo_texto, stats_data)
+            render_general_analysis(parceiro_nome, ano_analise,
+                                    mes_analise, modalidade_selecionada,
+                                    periodo_texto, stats_data)
         elif tipo_analise == "Comparativo 2025 vs Mês" and mes_analise:
             render_comparative_analysis(
                 parceiro_nome, mes_analise, modalidade_selecionada)
         elif tipo_analise == "Cursos por Modalidade":
-            render_courses_by_modality_analysis(parceiro_nome, ano_analise, mes_analise,
-                                                modalidade_selecionada, periodo_texto)
+            render_courses_by_modality_analysis(parceiro_nome,
+                                                ano_analise,
+                                                mes_analise,
+                                                modalidade_selecionada,
+                                                periodo_texto)
 
         render_highlights(stats_data, modalidade_selecionada)
     else:

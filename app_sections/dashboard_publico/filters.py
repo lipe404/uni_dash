@@ -58,8 +58,10 @@ def render_analysis_filters() -> Tuple[str, Optional[int], Optional[int], int]:
     return tipo_analise, ano_filtro, mes_filtro, ano_evolucao
 
 
-def get_period_description(tipo_analise: str, ano_filtro: Optional[int],
-                           mes_filtro: Optional[int], ano_evolucao: int) -> str:
+def get_period_description(tipo_analise: str,
+                           ano_filtro: Optional[int],
+                           mes_filtro: Optional[int],
+                           ano_evolucao: int) -> str:
     """
     Gera descrição do período baseado nos filtros
     """
