@@ -842,3 +842,165 @@ def create_projection_summary_cards(projecoes: Dict, targets: Dict):
             value=targets['falta_melhor_mes'],
             delta="vendas necessárias"
         )
+
+
+def create_inadimplencia_comparison_chart(df_inadimplentes: pd.DataFrame,
+                                          parceiro_nome: str,
+                                          ano_param=None,
+                                          mes_param=None,
+                                          modalidades_param=None) -> go.Figure:
+    """
+    Cria gráfico de barras comparativo mostrando total de matrículas vs inadimplentes por modalidade
+    """
+    from data.fetch_data import get_parceiro_vendas_detalhadas
+
+    # Buscar dados totais do parceiro com os mesmos filtros
+    df_total = get_parceiro_vendas_detalhadas(parceiro_nome)
+
+    if df_total is None or df_total.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Nenhum dado disponível para comparação",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        fig.update_layout(
+            title='📊 Comparativo: Total vs Inadimplentes por Modalidade',
+            template='plotly_white',
+            height=500
+        )
+        return fig
+
+    # Aplicar os mesmos filtros nos dados totais
+    if ano_param:
+        df_total = df_total[df_total['Dt Pagto'].dt.year == ano_param]
+
+    if mes_param:
+        df_total = df_total[df_total['Dt Pagto'].dt.month == mes_param]
+
+    # Filtrar apenas modalidades permitidas para inadimplentes
+    modalidades_permitidas = ['Graduação', 'Segunda Graduação', 'Tecnólogo']
+    df_total = df_total[df_total['Nível'].isin(modalidades_permitidas)]
+
+    # Aplicar filtro de modalidades específicas se fornecido
+    if modalidades_param and "Todas" not in modalidades_param:
+        modalidades_validas = [
+            m for m in modalidades_param if m in modalidades_permitidas]
+        if modalidades_validas:
+            df_total = df_total[df_total['Nível'].isin(modalidades_validas)]
+
+    if df_total.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Nenhum dado total encontrado para o período selecionado",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        fig.update_layout(
+            title='📊 Comparativo: Total vs Inadimplentes por Modalidade',
+            template='plotly_white',
+            height=500
+        )
+        return fig
+
+    # Calcular totais por modalidade
+    total_por_modalidade = df_total.groupby(
+        'Nível')['Qtd. Matrículas'].sum().reset_index()
+    total_por_modalidade.columns = ['Modalidade', 'Total_Matriculas']
+
+    # Calcular inadimplentes por modalidade
+    inadimplentes_por_modalidade = df_inadimplentes.groupby(
+        'Nível')['Qtd. Matrículas'].sum().reset_index()
+    inadimplentes_por_modalidade.columns = ['Modalidade', 'Inadimplentes']
+
+    # Combinar dados
+    df_combined = pd.merge(total_por_modalidade, inadimplentes_por_modalidade,
+                           on='Modalidade', how='left')
+    df_combined['Inadimplentes'] = df_combined['Inadimplentes'].fillna(0)
+
+    # Calcular porcentagens de inadimplência
+    df_combined['Porcentagem_Inadimplencia'] = (
+        df_combined['Inadimplentes'] / df_combined['Total_Matriculas'] * 100
+    ).round(1)
+
+    # Ordenar por total de matrículas
+    df_combined = df_combined.sort_values('Total_Matriculas', ascending=True)
+
+    modalidades = df_combined['Modalidade'].tolist()
+    total_matriculas = df_combined['Total_Matriculas'].tolist()
+    inadimplentes = df_combined['Inadimplentes'].tolist()
+    porcentagens = df_combined['Porcentagem_Inadimplencia'].tolist()
+
+    fig = go.Figure()
+
+    # Barra total (base)
+    fig.add_trace(go.Bar(
+        name='Total de Matrículas',
+        x=total_matriculas,
+        y=modalidades,
+        orientation='h',
+        marker_color='rgba(52, 152, 219, 0.7)',  # Azul translúcido
+        text=[f'{val}' for val in total_matriculas],
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br>Total: %{x} matrículas<extra></extra>'
+    ))
+
+    # Barra de inadimplentes (sobreposta)
+    fig.add_trace(go.Bar(
+        name='Inadimplentes',
+        x=inadimplentes,
+        y=modalidades,
+        orientation='h',
+        marker_color='rgba(231, 76, 60, 0.9)',  # Vermelho mais opaco
+        text=[f'{int(inad)} ({porc}%)' for inad,
+              porc in zip(inadimplentes, porcentagens)],
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br>Inadimplentes: %{x}<br>Porcentagem: %{customdata}%<extra></extra>',
+        customdata=porcentagens
+    ))
+
+    # Determinar título baseado nos filtros
+    titulo_filtros = []
+    if ano_param:
+        titulo_filtros.append(f"Ano {ano_param}")
+    if mes_param:
+        meses_nomes = {
+            1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+            5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+            9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+        }
+        titulo_filtros.append(meses_nomes[mes_param])
+
+    titulo_periodo = " - " + \
+        " / ".join(titulo_filtros) if titulo_filtros else ""
+
+    fig.update_layout(
+        title=f'📊 Comparativo: Total vs Inadimplentes por Modalidade{titulo_periodo}',
+        xaxis_title='Número de Matrículas',
+        yaxis_title='Modalidades',
+        template='plotly_white',
+        height=400,
+        barmode='overlay',  # Sobrepor as barras
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        annotations=[
+            dict(
+                text="💡 A barra vermelha mostra inadimplentes dentro do total de cada modalidade",
+                showarrow=False,
+                xref="paper", yref="paper",
+                x=0.5, y=-0.15,
+                xanchor='center', yanchor='top',
+                font=dict(size=12, color="gray")
+            )
+        ]
+    )
+
+    return fig

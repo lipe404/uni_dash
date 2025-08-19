@@ -39,7 +39,7 @@ def render_inadimplentes_section(parceiro_nome: str,
 
     # Renderizar análises
     _render_inadimplentes_metrics(df_inadimplentes)
-    _render_modality_analysis(df_inadimplentes)
+    _render_modality_analysis(df_inadimplentes, parceiro_nome, ano_param, mes_param, modalidades_param)
     _render_inadimplentes_preview(df_inadimplentes)
 
     st.markdown("---")
@@ -205,7 +205,11 @@ def _render_inadimplentes_metrics(df_inadimplentes: pd.DataFrame) -> None:
         )
 
 
-def _render_modality_analysis(df_inadimplentes: pd.DataFrame) -> None:
+def _render_modality_analysis(df_inadimplentes: pd.DataFrame,
+                              parceiro_nome: str,
+                              ano_param,
+                              mes_param,
+                              modalidades_param) -> None:
     """Renderiza análise por modalidade"""
     st.markdown("#### 📊 Análise por Modalidade")
 
@@ -215,6 +219,7 @@ def _render_modality_analysis(df_inadimplentes: pd.DataFrame) -> None:
         'Qtd. Matrículas', ascending=False)
     modalidades_inadimplentes_count.columns = ['Modalidade', 'Inadimplentes']
 
+    # Primeira linha: Tabela e Gráfico de Pizza
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -231,15 +236,38 @@ def _render_modality_analysis(df_inadimplentes: pd.DataFrame) -> None:
     with col2:
         if len(modalidades_inadimplentes_count) > 0:
             import plotly.express as px
-            fig = px.pie(
+            fig_pie = px.pie(
                 modalidades_inadimplentes_count,
                 values='Inadimplentes',
                 names='Modalidade',
-                title="Distribuição de Inadimplentes por Modalidade",
+                title="Distribuição de Inadimplentes",
                 color_discrete_sequence=['#ff6b6b', '#4ecdc4', '#45b7d1']
             )
-            fig.update_traces(textposition='inside', textinfo='percent+label')
-            st.plotly_chart(fig, use_container_width=True)
+            fig_pie.update_traces(textposition='inside',
+                                  textinfo='percent+label')
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+    # Segunda linha: Gráfico Comparativo Total vs Inadimplentes
+    st.markdown("#### 📊 Comparativo: Total de Matrículas vs Inadimplentes")
+
+    from utils.graphs import create_inadimplencia_comparison_chart
+
+    fig_comparison = create_inadimplencia_comparison_chart(
+        df_inadimplentes,
+        parceiro_nome,
+        ano_param,
+        mes_param,
+        modalidades_param
+    )
+    st.plotly_chart(fig_comparison, use_container_width=True)
+
+    # Adicionar explicação
+    st.info("""
+    **📋 Como interpretar o gráfico:**
+    - **Barra azul:** Total de matrículas da modalidade no período
+    - **Barra vermelha:** Quantidade de inadimplentes dentro desse total
+    - **Porcentagem:** Taxa de inadimplência da modalidade (inadimplentes/total × 100)
+    """)
 
 
 def _render_inadimplentes_preview(df_inadimplentes: pd.DataFrame) -> None:
